@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Brain, LogOut, Home } from 'lucide-react';
+import { Brain, LogOut, Home, BookOpen, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import Button from '../ui/Button';
 
@@ -9,7 +9,7 @@ interface DashboardLayoutProps {
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -36,6 +36,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <Home className="w-4 h-4" />
                 <span>Dashboard</span>
               </Link>
+              <Link to="/blog" className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors">
+                <BookOpen className="w-4 h-4" />
+                <span>Blog</span>
+              </Link>
+              {isAdmin && (
+                <Link to="/admin/blog" className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors">
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>Blog Admin</span>
+                </Link>
+              )}
               <div className="flex items-center gap-3">
                 <span className="text-sm text-gray-600">{user?.email}</span>
                 <Button

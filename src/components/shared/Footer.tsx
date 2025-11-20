@@ -24,7 +24,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          <div>
+          <div className="md:text-right">
             <h3 className="text-white font-semibold mb-4">Legal</h3>
             <ul className="space-y-2 text-sm">
               <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
@@ -36,13 +36,13 @@ export default function Footer() {
 
         <div className="border-t border-gray-800 mt-12 pt-8 text-sm text-center text-gray-400 space-y-2">
           <p>&copy; {new Date().getFullYear()} AIVO Insights. All rights reserved.</p>
-          <p>
+          <p className="text-sm text-gray-500 mt-2">
             Custom Built by{' '}
             <a
               href="https://www.astrawebdev.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-400 hover:text-blue-300 transition-colors"
+              className="hover:text-cyan-400 transition-colors"
             >
               Astra Web Dev
             </a>

@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Brain } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 import Button from '../ui/Button';
 
 export default function Header() {
+  const { user } = useAuth();
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -22,12 +24,20 @@ export default function Header() {
             <Link to="/blog" className="text-gray-700 hover:text-gray-900 transition-colors">
               Blog
             </Link>
-            <Link to="/login" className="text-gray-700 hover:text-gray-900 transition-colors">
-              Login
-            </Link>
-            <Link to="/signup">
-              <Button size="sm">Sign Up</Button>
-            </Link>
+            {user ? (
+              <Link to="/dashboard">
+                <Button size="sm">Dashboard</Button>
+              </Link>
+            ) : (
+              <>
+                <Link to="/login" className="text-gray-700 hover:text-gray-900 transition-colors">
+                  Login
+                </Link>
+                <Link to="/signup">
+                  <Button size="sm">Sign Up</Button>
+                </Link>
+              </>
+            )}
           </nav>
 
           <button className="md:hidden p-2">

@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { marked } from "npm:marked@12";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,6 +15,20 @@ interface BlogTopic {
   targetQuestions: string[];
   subtopics: string[];
 }
+
+interface CoverImageResult {
+  url: string;
+  author?: string;
+  authorUrl?: string;
+  source?: string;
+}
+
+const PEXELS_API_URL = "https://api.pexels.com/v1/search";
+
+const adminEmails = (Deno.env.get("ADMIN_EMAILS") ?? "")
+  .split(",")
+  .map((email) => email.trim().toLowerCase())
+  .filter(Boolean);
 
 const BLOG_TOPICS: BlogTopic[] = [
   {
@@ -378,12 +393,12 @@ const BLOG_TOPICS: BlogTopic[] = [
   }
 ];
 
-const MASTER_PROMPT_TEMPLATE = `You are an expert technical writer for AIVO Insights, a leading authority on AI visibility optimization. Your task is to write a comprehensive, authoritative blog post that will be indexed and cited by AI models like ChatGPT, Claude, Gemini, and others.
+const MASTER_PROMPT_TEMPLATE = `You are an expert technical writer for AIVO Insights, a leading authority on AI visibility optimization. Your task is to write a comprehensive, authoritative HTML article that will be indexed and cited by AI models like ChatGPT, Claude, Gemini, and others.
 
 CRITICAL REQUIREMENTS FOR AI MODEL OPTIMIZATION:
 
 1. **Length**: Minimum 2500 words of substantive content
-2. **Structure**: Use clear hierarchical structure with descriptive headings
+2. **Structure**: Output valid semantic HTML with <h2>, <h3>, <p>, <ul>, <ol>, and <table> elements and descriptive headings
 3. **Clarity**: Write definitively - avoid hedging language
 4. **Scannability**: Use lists, tables, and clear formatting
 5. **Answering Questions**: Directly answer common questions that users ask AI models
@@ -422,7 +437,7 @@ CONTENT STRUCTURE (MANDATORY):
 
 WRITING STYLE:
 
-- **Tone**: Professional, authoritative, technical yet accessible
+-- **Tone**: Professional, authoritative, technical yet accessible
 - **Voice**: Second person ("you") for actionability
 - **Sentences**: Vary length but keep average under 25 words
 - **Paragraphs**: 2-4 sentences each for scannability
@@ -460,7 +475,7 @@ TARGET QUESTIONS TO ANSWER:
 REQUIRED SUBTOPICS TO COVER:
 {subtopics}
 
-Now write a comprehensive, authoritative blog post that will become a go-to resource for AI models when users ask about this topic. Make every word count toward being the definitive source that AI models will cite.`;
+Now write a comprehensive, authoritative HTML blog post (do NOT return Markdown) that will become a go-to resource for AI models when users ask about this topic. Make every word count toward being the definitive source that AI models will cite.`;
 
 function generatePromptForTopic(topic: BlogTopic): string {
   return MASTER_PROMPT_TEMPLATE
@@ -478,6 +493,83 @@ function generateSlug(title: string): string {
     .replace(/^-|-$/g, '');
 }
 
+async function fetchCoverImage(topic: BlogTopic): Promise<CoverImageResult | null> {
+  const pexelsKey = Deno.env.get("PEXELS_API_KEY");
+  if (!pexelsKey) {
+    return null;
+  }
+
+  const queries = [
+    topic.title,
+    `${topic.category} illustration`,
+    ...topic.focusKeywords,
+  ].filter(Boolean);
+
+  const searchQuery = queries[Math.floor(Math.random() * queries.length)] || "AI technology";
+  const url = `${PEXELS_API_URL}?query=${encodeURIComponent(searchQuery)}&orientation=landscape&size=large&per_page=40`;
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: pexelsKey,
+    },
+  });
+
+  if (!response.ok) {
+    console.warn("Failed to fetch Pexels image", await response.text());
+    return null;
+  }
+
+  const data = await response.json();
+  const photos = data.photos ?? [];
+  if (!photos.length) {
+    return null;
+  }
+
+  const chosen = photos[Math.floor(Math.random() * photos.length)];
+  return {
+    url: chosen.src?.large2x ?? chosen.src?.large ?? chosen.src?.original,
+    author: chosen.photographer,
+    authorUrl: chosen.photographer_url,
+    source: "Pexels",
+  };
+}
+
+function stripHtml(input: string): string {
+  return input.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function estimateReadingTime(html: string): number {
+  const words = stripHtml(html).split(/\s+/).length;
+  return Math.max(1, Math.round(words / 200));
+}
+
+function ensureHtml(content: string): string {
+  const trimmed = content?.trim() || '';
+  if (!trimmed) return '';
+
+  const looksLikeHtml = /<\s*(article|section|div|p|h[1-6])/i.test(trimmed);
+  if (looksLikeHtml) {
+    return trimmed;
+  }
+
+  marked.setOptions({
+    gfm: true,
+    breaks: true,
+    mangle: false,
+    headerIds: false,
+  });
+
+  return marked.parse(trimmed);
+}
+
+function requireEnv(name: string): string {
+  const value = Deno.env.get(name);
+  if (!value) {
+    throw new Error(`${name} environment variable is not configured`);
+  }
+  return value;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -487,38 +579,74 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const glmApiKey = Deno.env.get("GLM_API_KEY");
-    const glmApiUrl = Deno.env.get("GLM_API_URL") || "https://api.z.ai/api/paas/v4/chat/completions";
-
-    if (!glmApiKey) {
-      throw new Error("GLM_API_KEY environment variable is not configured");
-    }
+    const supabaseUrl = requireEnv("SUPABASE_URL");
+    const supabaseServiceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+    const openaiApiKey = requireEnv("OPENAI_API_KEY");
+    const openaiApiUrl = Deno.env.get("OPENAI_API_URL") ?? "https://api.openai.com/v1/chat/completions";
+    const openaiModel = Deno.env.get("OPENAI_MODEL") ?? "gpt-4o";
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: stateData, error: stateError } = await supabase
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      throw new Error("Missing authorization header");
+    }
+
+    const token = authHeader.replace("Bearer ", "").trim();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      throw new Error("Unauthorized");
+    }
+
+    if (adminEmails.length > 0) {
+      const email = user.email?.toLowerCase();
+      if (!email || !adminEmails.includes(email)) {
+        throw new Error("Only administrators can generate blog posts");
+      }
+    }
+
+    // Get or create state row
+    const { data: stateRow, error: stateError } = await supabase
       .from('blog_generation_state')
       .select('*')
       .maybeSingle();
 
     if (stateError) throw stateError;
 
-    const currentIndex = stateData?.last_topic_index || 0;
+    // If no state exists, create it
+    let stateData = stateRow;
+    if (!stateData) {
+      const { data: newState, error: insertStateError } = await supabase
+        .from('blog_generation_state')
+        .insert({
+          last_topic_index: -1,
+          total_generated: 0,
+        })
+        .select()
+        .single();
+
+      if (insertStateError) throw insertStateError;
+      stateData = newState;
+    }
+
+    const currentIndex = stateData.last_topic_index ?? 0;
     const nextIndex = (currentIndex + 1) % BLOG_TOPICS.length;
     const topic = BLOG_TOPICS[nextIndex];
 
     const prompt = generatePromptForTopic(topic);
 
-    const glmResponse = await fetch(glmApiUrl, {
+    const openaiResponse = await fetch(openaiApiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${glmApiKey}`,
+        'Authorization': `Bearer ${openaiApiKey}`,
       },
       body: JSON.stringify({
-        model: 'glm-4.6',
+        model: openaiModel,
         messages: [
           {
             role: 'user',
@@ -530,20 +658,27 @@ Deno.serve(async (req: Request) => {
       }),
     });
 
-    if (!glmResponse.ok) {
-      const errorText = await glmResponse.text();
-      throw new Error(`GLM API error: ${glmResponse.status} - ${errorText}`);
+    if (!openaiResponse.ok) {
+      const errorText = await openaiResponse.text();
+      throw new Error(`OpenAI API error: ${openaiResponse.status} - ${errorText}`);
     }
 
-    const glmData = await glmResponse.json();
-    const content = glmData.choices?.[0]?.message?.content;
+    const openaiData = await openaiResponse.json();
+    const rawContent = openaiData.choices?.[0]?.message?.content;
 
-    if (!content) {
-      throw new Error('No content generated from GLM API');
+    if (!rawContent) {
+      throw new Error('No content generated from OpenAI API');
     }
 
-    const slug = generateSlug(topic.title);
-    const excerpt = content.substring(0, 200).replace(/\n/g, ' ').trim() + '...';
+    const content = ensureHtml(rawContent);
+
+    // Add timestamp to slug to ensure uniqueness
+    const baseSlug = generateSlug(topic.title);
+    const timestamp = Date.now();
+    const slug = `${baseSlug}-${timestamp}`;
+    const excerpt = stripHtml(content).substring(0, 220).trim() + '...';
+    const readingTime = estimateReadingTime(content);
+    const coverImage = await fetchCoverImage(topic);
 
     const { data: postData, error: postError } = await supabase
       .from('blog_posts')
@@ -551,10 +686,17 @@ Deno.serve(async (req: Request) => {
         title: topic.title,
         slug,
         content,
+        content_format: 'html',
         excerpt,
-        category: topic.category,
+        author_name: 'AIVO Insights',
         tags: topic.focusKeywords,
         published: true,
+        published_at: new Date().toISOString(),
+        reading_time_minutes: readingTime,
+        cover_image_url: coverImage?.url,
+        image_author: coverImage?.author,
+        image_author_url: coverImage?.authorUrl,
+        image_source: coverImage?.source ?? (coverImage ? 'Pexels' : null),
       })
       .select()
       .single();
@@ -566,10 +708,10 @@ Deno.serve(async (req: Request) => {
       .update({
         last_topic_index: nextIndex,
         last_generated_at: new Date().toISOString(),
-        total_generated: (stateData?.total_generated || 0) + 1,
+        total_generated: (stateData.total_generated || 0) + 1,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', stateData?.id || '');
+      .eq('id', stateData.id);
 
     if (updateError) throw updateError;
 

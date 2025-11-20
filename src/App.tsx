@@ -11,6 +11,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import SiteDetail from './pages/SiteDetail';
+import AdminBlog from './pages/AdminBlog';
 import ProtectedRoute from './components/ProtectedRoute';
 import ScrollToTop from './components/ScrollToTop';
 
@@ -42,6 +43,14 @@ function App() {
           element={
             <ProtectedRoute>
               <SiteDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/blog"
+          element={
+            <ProtectedRoute requireAdmin>
+              <AdminBlog />
             </ProtectedRoute>
           }
         />

@@ -33,9 +33,9 @@ export default function Blog() {
     }
   };
 
-  const allTags = Array.from(new Set(posts.flatMap(post => post.tags)));
+  const allTags = Array.from(new Set(posts.flatMap(post => post.tags ?? [])));
   const filteredPosts = selectedTag
-    ? posts.filter(post => post.tags.includes(selectedTag))
+    ? posts.filter(post => (post.tags ?? []).includes(selectedTag))
     : posts;
 
   const formatDate = (dateString: string) => {
@@ -148,7 +148,7 @@ export default function Blog() {
                 )}
                 <div className="p-6">
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {post.tags.map(tag => (
+                    {(post.tags ?? []).map(tag => (
                       <span
                         key={tag}
                         className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded"
@@ -178,7 +178,7 @@ export default function Blog() {
                     </div>
                     <div className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />
-                      <span>{post.reading_time_minutes} min read</span>
+                      <span>{post.reading_time_minutes || 5} min read</span>
                     </div>
                   </div>
 

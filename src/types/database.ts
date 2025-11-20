@@ -52,9 +52,13 @@ export interface BlogPost {
   slug: string;
   excerpt: string;
   content: string;
+  content_format?: string;
   author_name: string;
   author_email?: string;
   cover_image_url?: string;
+  image_source?: string;
+  image_author?: string;
+  image_author_url?: string;
   tags: string[];
   published: boolean;
   published_at: string | null;

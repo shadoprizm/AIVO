@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Calendar, Clock, Tag, ArrowLeft } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import MarketingLayout from '../components/layouts/MarketingLayout';
 import SEOHead from '../components/shared/SEOHead';
 import Breadcrumbs from '../components/shared/Breadcrumbs';
@@ -142,7 +144,7 @@ export default function BlogPostPage() {
           )}
 
           <div className="flex flex-wrap gap-2 mb-4">
-            {post.tags.map(tag => (
+            {(post.tags ?? []).map(tag => (
               <span
                 key={tag}
                 className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 text-sm font-medium rounded-full"
@@ -166,7 +168,7 @@ export default function BlogPostPage() {
             </div>
             <div className="flex items-center gap-2">
               <Clock className="w-5 h-5" />
-              <span>{post.reading_time_minutes} min read</span>
+              <span>{post.reading_time_minutes || 5} min read</span>
             </div>
           </div>
 
@@ -181,16 +183,30 @@ export default function BlogPostPage() {
           </div>
         </header>
 
-        <section className="prose prose-lg max-w-none">
-          <div
-            dangerouslySetInnerHTML={{
-              __html: post.content
-                .split('\n\n')
-                .map(para => `<p>${para}</p>`)
-                .join(''),
-            }}
-          />
+        <section className="blog-content text-gray-800 leading-relaxed space-y-4">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {post.content}
+          </ReactMarkdown>
         </section>
+
+        {post.image_author && (
+          <p className="text-sm text-gray-500 mt-6">
+            Cover photo by{' '}
+            {post.image_author_url ? (
+              <a
+                href={post.image_author_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                {post.image_author}
+              </a>
+            ) : (
+              post.image_author
+            )}{' '}
+            {post.image_source && `via ${post.image_source}`}
+          </p>
+        )}
 
         <footer className="mt-12 pt-8 border-t border-gray-200">
           <Link

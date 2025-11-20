@@ -9,7 +9,7 @@ import { supabase } from '../lib/supabase';
 import { Site } from '../types/database';
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -19,6 +19,7 @@ export default function Dashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [generatingBlog, setGeneratingBlog] = useState(false);
   const [blogMessage, setBlogMessage] = useState('');
+  const [blogError, setBlogError] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -89,17 +90,29 @@ export default function Dashboard() {
   };
 
   const handleGenerateBlog = async () => {
+    if (!isAdmin) {
+      setBlogError('Only administrators can generate blog posts.');
+      return;
+    }
+
     setGeneratingBlog(true);
     setBlogMessage('');
-    setError('');
+    setBlogError('');
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        throw new Error('You must be logged in to generate blog posts');
+      }
+
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-blog`;
 
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
       });
 
@@ -111,7 +124,7 @@ export default function Dashboard() {
 
       setBlogMessage(`Successfully generated: "${result.topic}"`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate blog post');
+      setBlogError(err instanceof Error ? err.message : 'Failed to generate blog post');
     } finally {
       setGeneratingBlog(false);
     }
@@ -126,15 +139,26 @@ export default function Dashboard() {
             <p className="text-gray-600 mt-2">Manage and analyze your websites for AI visibility</p>
           </div>
           <div className="flex gap-3">
-            <Button
-              onClick={handleGenerateBlog}
-              disabled={generatingBlog}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Sparkles className="w-4 h-4" />
-              {generatingBlog ? 'Generating...' : 'Generate Blog Post'}
-            </Button>
+            {isAdmin && (
+              <Button
+                onClick={handleGenerateBlog}
+                disabled={generatingBlog}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                {generatingBlog ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Generate Blog Post
+                  </>
+                )}
+              </Button>
+            )}
             {sites.length > 0 && !showAddForm && (
               <Button onClick={() => setShowAddForm(true)} className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />
@@ -147,6 +171,11 @@ export default function Dashboard() {
         {blogMessage && (
           <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
             {blogMessage}
+          </div>
+        )}
+        {blogError && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            {blogError}
           </div>
         )}
 
