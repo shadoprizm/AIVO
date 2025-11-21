@@ -183,10 +183,17 @@ export default function BlogPostPage() {
           </div>
         </header>
 
-        <section className="blog-content text-gray-800 leading-relaxed space-y-4">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {post.content}
-          </ReactMarkdown>
+        <section className="blog-content text-gray-800 leading-relaxed">
+          {post.content_format === 'html' || !post.content_format ? (
+            <div
+              className="space-y-4"
+              dangerouslySetInnerHTML={{ __html: post.content }}
+            />
+          ) : (
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {post.content}
+            </ReactMarkdown>
+          )}
         </section>
 
         {post.image_author && (

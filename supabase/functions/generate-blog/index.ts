@@ -445,6 +445,12 @@ WRITING STYLE:
 - **Examples**: Use specific, concrete examples
 - **Data**: Include statistics, percentages, and measurable outcomes
 
+VISUAL POLISH AND EMOJIS:
+
+- Use a few well-chosen, professional-feeling emojis in major section headings and key callout bullets (for example: 🚀, 📊, 🧠, 🛠️, ✅, 📌).
+- Place emojis at the start of headings or bullets, not in the middle of sentences.
+- Do not overuse emojis: most H2/H3 headings should have at most one emoji, and many regular paragraphs should have none.
+
 OPTIMIZATION FOR AI CITATIONS:
 
 1. **Direct Answers**: Start key paragraphs with clear, quotable statements
@@ -494,7 +500,10 @@ function generateSlug(title: string): string {
 }
 
 async function fetchCoverImage(topic: BlogTopic): Promise<CoverImageResult | null> {
-  const pexelsKey = Deno.env.get("PEXELS_API_KEY");
+  const pexelsKey =
+    Deno.env.get("PEXELS_API_KEY") ??
+    Deno.env.get("VITE_PEXELS_API_KEY") ??
+    null;
   if (!pexelsKey) {
     return null;
   }
