@@ -41,6 +41,61 @@ export default function Home() {
     },
   };
 
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: 'What is the AIVO Score?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'The AIVO Score is a comprehensive 0-100 rating that measures how effectively AI language models can interpret, understand, and cite your website content. It evaluates multiple dimensions including content clarity, semantic structure, schema markup, Q&A readiness, and authority signals.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'How does AI visibility differ from traditional SEO?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Traditional SEO focuses on keyword optimization and backlinks to rank in search engine results. AI visibility optimization ensures your content is structured and formatted in ways that AI models can easily parse, understand, and reference when answering user questions. This includes semantic HTML, clear heading hierarchies, Q&A formatting, and factual clarity.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Which AI models does AIVO analyze for?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'AIVO Insights evaluates your content based on how major AI language models interpret information, including ChatGPT, Claude, Gemini, and other leading AI assistants. Our analysis focuses on universal best practices that improve visibility across all AI platforms.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'How often should I scan my site?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'We recommend scanning after significant content updates or redesigns. For actively maintained sites, quarterly scans help track progress and identify new optimization opportunities. Our platform maintains scan history so you can monitor improvements over time.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Do I need technical expertise to implement recommendations?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Our recommendations range from simple content adjustments to technical implementations. Many improvements, like restructuring headings and adding Q&A sections, require no coding. For technical changes like schema markup, we provide clear, actionable guidance suitable for developers of all skill levels.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Is there a free tier available?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Yes! Our free tier includes limited monthly scans so you can evaluate AIVO Insights and begin optimizing your content. Paid plans offer unlimited scans, historical tracking, priority support, and advanced features.',
+        },
+      },
+    ],
+  };
+
   return (
     <MarketingLayout>
       <SEOHead
@@ -54,6 +109,7 @@ export default function Home() {
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
 
       <article>
         {/* New animated hero section */}
@@ -68,18 +124,56 @@ export default function Home() {
             </AnimatedSection>
             <div className="max-w-4xl mx-auto">
               <AnimatedSection delay={0.1}>
-                <p className="text-lg text-gray-700 mb-4">
+                <p className="text-lg text-gray-700 mb-6">
                   The way people discover information is fundamentally changing. AI assistants like ChatGPT, Claude, and Gemini are becoming primary research tools, answering questions and providing recommendations without users ever visiting a search engine.
                 </p>
               </AnimatedSection>
-              <AnimatedSection delay={0.2}>
-                <p className="text-lg text-gray-700 mb-4">
-                  Studies show that over 60% of professionals now use AI tools for research and decision-making. If your content isn't optimized for AI interpretation, you're invisible to a rapidly growing segment of your potential audience.
-                </p>
-              </AnimatedSection>
-              <AnimatedSection delay={0.3}>
-                <p className="text-lg text-gray-700">
-                  Traditional SEO focused on keywords and backlinks. AI visibility requires clear structure, semantic markup, authoritative content, and Q&A formatting that AI models can easily parse and cite.
+
+              <div className="grid md:grid-cols-2 gap-8 mb-8">
+                <AnimatedSection delay={0.2}>
+                  <div className="bg-blue-50 p-6 rounded-xl border border-blue-100 h-full">
+                    <h3 className="text-xl font-semibold text-blue-900 mb-3">The Shift in Search</h3>
+                    <ul className="space-y-3">
+                      <li className="flex items-start gap-2 text-gray-700">
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2.5 flex-shrink-0" />
+                        <span>Over 60% of professionals now use AI tools for research and decision-making.</span>
+                      </li>
+                      <li className="flex items-start gap-2 text-gray-700">
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2.5 flex-shrink-0" />
+                        <span>AI models act as gatekeepers, deciding which sources to cite and recommend.</span>
+                      </li>
+                      <li className="flex items-start gap-2 text-gray-700">
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2.5 flex-shrink-0" />
+                        <span>Traditional SEO tactics don't guarantee visibility in AI-generated answers.</span>
+                      </li>
+                    </ul>
+                  </div>
+                </AnimatedSection>
+
+                <AnimatedSection delay={0.3}>
+                  <div className="bg-purple-50 p-6 rounded-xl border border-purple-100 h-full">
+                    <h3 className="text-xl font-semibold text-purple-900 mb-3">What AI Models Need</h3>
+                    <ul className="space-y-3">
+                      <li className="flex items-start gap-2 text-gray-700">
+                        <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2.5 flex-shrink-0" />
+                        <span>Clear semantic structure and logical heading hierarchy.</span>
+                      </li>
+                      <li className="flex items-start gap-2 text-gray-700">
+                        <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2.5 flex-shrink-0" />
+                        <span>Explicit Q&A formatting that models can easily parse.</span>
+                      </li>
+                      <li className="flex items-start gap-2 text-gray-700">
+                        <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2.5 flex-shrink-0" />
+                        <span>Authoritative signals and verifiable data points.</span>
+                      </li>
+                    </ul>
+                  </div>
+                </AnimatedSection>
+              </div>
+
+              <AnimatedSection delay={0.4}>
+                <p className="text-lg text-gray-700 text-center italic">
+                  "If your content isn't optimized for AI interpretation, you're invisible to a rapidly growing segment of your potential audience."
                 </p>
               </AnimatedSection>
             </div>

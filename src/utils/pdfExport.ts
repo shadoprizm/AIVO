@@ -140,15 +140,19 @@ export function generateScanPDF(scan: Scan, siteName: string, siteUrl: string) {
   doc.text('Category Breakdown', 15, currentY);
   currentY += 5;
 
-  const categoryData = Object.entries(analysis_json.category_scores).map(([key, score]) => [
-    categoryLabels[key as keyof CategoryScores],
-    score.toString(),
-    categoryDescriptions[key as keyof CategoryScores],
-  ]);
+  const categoryData = Object.entries(analysis_json.category_scores).map(([key, score]) => {
+    const feedback = analysis_json.category_feedback?.[key as keyof CategoryScores];
+    return [
+      categoryLabels[key as keyof CategoryScores],
+      score.toString(),
+      feedback?.score_reason || categoryDescriptions[key as keyof CategoryScores],
+      feedback?.improvement_path || 'Follow recommended fixes to reach 100.',
+    ];
+  });
 
   autoTable(doc, {
     startY: currentY,
-    head: [['Category', 'Score', 'Description']],
+    head: [['Category', 'Score', 'Why this score', 'Path to 100']],
     body: categoryData,
     theme: 'grid',
     headStyles: {
@@ -162,9 +166,10 @@ export function generateScanPDF(scan: Scan, siteName: string, siteUrl: string) {
       textColor: [31, 41, 55],
     },
     columnStyles: {
-      0: { cellWidth: 45 },
-      1: { cellWidth: 20, halign: 'center' },
-      2: { cellWidth: 'auto' },
+      0: { cellWidth: 35 },
+      1: { cellWidth: 18, halign: 'center' },
+      2: { cellWidth: 65 },
+      3: { cellWidth: 'auto' },
     },
     didParseCell: function(data) {
       if (data.section === 'body' && data.column.index === 1) {

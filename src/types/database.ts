@@ -16,6 +16,11 @@ export interface CategoryScores {
   technical_accessibility: number;
 }
 
+export interface CategoryFeedback {
+  score_reason: string;
+  improvement_path: string;
+}
+
 export interface Recommendation {
   id: string;
   category: keyof CategoryScores;
@@ -29,9 +34,19 @@ export interface Recommendation {
 export interface AnalysisJson {
   overall_score: number;
   category_scores: CategoryScores;
+  category_feedback: Record<keyof CategoryScores, CategoryFeedback>;
   recommendations: Recommendation[];
   notes?: string[];
   warnings?: string[];
+  faq_findings?: {
+    url: string;
+    content_length: number;
+    has_faq_schema: boolean;
+    has_question_schema: boolean;
+    question_like_blocks: number;
+    adequacy: 'strong' | 'weak' | 'missing';
+    summary: string;
+  }[];
   analyzed_at: string;
   analysis_version: string;
 }

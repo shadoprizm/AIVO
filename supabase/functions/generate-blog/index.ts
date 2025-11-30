@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { marked } from "npm:marked@12";
 
 const corsHeaders = {
@@ -23,7 +24,30 @@ interface CoverImageResult {
   source?: string;
 }
 
+interface StoredBlogPost {
+  id: string;
+  title?: string;
+  slug?: string;
+  content?: string;
+  content_format?: string | null;
+  excerpt?: string;
+  author_name?: string;
+  author_email?: string | null;
+  cover_image_url?: string | null;
+  image_author?: string | null;
+  image_author_url?: string | null;
+  image_source?: string | null;
+  tags?: string[];
+  published?: boolean;
+  published_at: string | null;
+  created_at: string;
+  updated_at?: string | null;
+  meta_description?: string | null;
+  reading_time_minutes?: number | null;
+}
+
 const PEXELS_API_URL = "https://api.pexels.com/v1/search";
+const FALLBACK_COVER_IMAGE_URL = "https://aivoinsights.com/og-image.png";
 
 const adminEmails = (Deno.env.get("ADMIN_EMAILS") ?? "")
   .split(",")
@@ -499,7 +523,7 @@ function generateSlug(title: string): string {
     .replace(/^-|-$/g, '');
 }
 
-async function fetchCoverImage(topic: BlogTopic): Promise<CoverImageResult | null> {
+async function fetchCoverImage(topic: BlogTopic, supabase: SupabaseClient): Promise<CoverImageResult | null> {
   const pexelsKey =
     Deno.env.get("PEXELS_API_KEY") ??
     Deno.env.get("VITE_PEXELS_API_KEY") ??
@@ -508,38 +532,80 @@ async function fetchCoverImage(topic: BlogTopic): Promise<CoverImageResult | nul
     return null;
   }
 
+  // Get list of already used image URLs
+  const { data: usedImages } = await supabase
+    .from('used_blog_images')
+    .select('image_url');
+
+  const usedUrls = new Set((usedImages ?? []).map(img => img.image_url));
+
   const queries = [
     topic.title,
     `${topic.category} illustration`,
     ...topic.focusKeywords,
   ].filter(Boolean);
 
-  const searchQuery = queries[Math.floor(Math.random() * queries.length)] || "AI technology";
-  const url = `${PEXELS_API_URL}?query=${encodeURIComponent(searchQuery)}&orientation=landscape&size=large&per_page=40`;
+  // Try multiple search queries to find a unique image
+  for (const searchQuery of queries) {
+    const url = `${PEXELS_API_URL}?query=${encodeURIComponent(searchQuery)}&orientation=landscape&size=large&per_page=40`;
 
-  const response = await fetch(url, {
-    headers: {
-      Authorization: pexelsKey,
-    },
-  });
+    const response = await fetch(url, {
+      headers: {
+        Authorization: pexelsKey,
+      },
+    });
 
-  if (!response.ok) {
-    console.warn("Failed to fetch Pexels image", await response.text());
-    return null;
+    if (!response.ok) {
+      console.warn("Failed to fetch Pexels image", await response.text());
+      continue;
+    }
+
+    const data = await response.json();
+    const photos = data.photos ?? [];
+    if (!photos.length) {
+      continue;
+    }
+
+    // Filter out already used images
+    const unusedPhotos = photos.filter((photo: any) => {
+      const imageUrl = photo.src?.large2x ?? photo.src?.large ?? photo.src?.original;
+      return !usedUrls.has(imageUrl);
+    });
+
+    if (unusedPhotos.length > 0) {
+      const chosen = unusedPhotos[Math.floor(Math.random() * unusedPhotos.length)];
+      const imageUrl = chosen.src?.large2x ?? chosen.src?.large ?? chosen.src?.original;
+
+      // Mark this image as used
+      await supabase
+        .from('used_blog_images')
+        .insert({
+          image_url: imageUrl,
+          photographer: chosen.photographer,
+          photographer_url: chosen.photographer_url,
+        });
+
+      return {
+        url: imageUrl,
+        author: chosen.photographer,
+        authorUrl: chosen.photographer_url,
+        source: "Pexels",
+      };
+    }
   }
 
-  const data = await response.json();
-  const photos = data.photos ?? [];
-  if (!photos.length) {
-    return null;
-  }
+  // If all images from all queries have been used, fall back to fallback image
+  return null;
+}
 
-  const chosen = photos[Math.floor(Math.random() * photos.length)];
+async function ensureCoverImage(topic: BlogTopic, supabase: SupabaseClient): Promise<CoverImageResult> {
+  const cover = await fetchCoverImage(topic, supabase);
+  if (cover) return cover;
+
   return {
-    url: chosen.src?.large2x ?? chosen.src?.large ?? chosen.src?.original,
-    author: chosen.photographer,
-    authorUrl: chosen.photographer_url,
-    source: "Pexels",
+    url: FALLBACK_COVER_IMAGE_URL,
+    author: "AIVO Insights",
+    source: "AIVO",
   };
 }
 
@@ -550,6 +616,16 @@ function stripHtml(input: string): string {
 function estimateReadingTime(html: string): number {
   const words = stripHtml(html).split(/\s+/).length;
   return Math.max(1, Math.round(words / 200));
+}
+
+function isSameDay(dateString: string | null, comparison: Date): boolean {
+  if (!dateString) return false;
+  const date = new Date(dateString);
+  return (
+    date.getUTCFullYear() === comparison.getUTCFullYear() &&
+    date.getUTCMonth() === comparison.getUTCMonth() &&
+    date.getUTCDate() === comparison.getUTCDate()
+  );
 }
 
 function ensureHtml(content: string): string {
@@ -569,6 +645,43 @@ function ensureHtml(content: string): string {
   });
 
   return marked.parse(trimmed);
+}
+
+async function getLatestPostAndCleanupDuplicates(
+  supabase: SupabaseClient,
+  title: string,
+): Promise<{ latestPost: StoredBlogPost | null; removed: number }> {
+  const { data: existingPosts, error: existingError }: { data: StoredBlogPost[] | null; error: unknown } = await supabase
+    .from('blog_posts')
+    .select('id, published_at, created_at')
+    .eq('title', title)
+    .order('published_at', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false });
+
+  if (existingError) throw existingError;
+  if (!existingPosts?.length) return { latestPost: null, removed: 0 };
+
+  const [latest, ...duplicates] = existingPosts;
+  let removed = 0;
+
+  if (duplicates.length) {
+    const { error: deleteError } = await supabase
+      .from('blog_posts')
+      .delete()
+      .in('id', duplicates.map((p) => p.id));
+
+    if (deleteError) throw deleteError;
+    removed = duplicates.length;
+  }
+
+  const { data: latestPost, error: latestError }: { data: StoredBlogPost | null; error: unknown } = await supabase
+    .from('blog_posts')
+    .select('*')
+    .eq('id', latest.id)
+    .single();
+
+  if (latestError) throw latestError;
+  return { latestPost, removed };
 }
 
 function requireEnv(name: string): string {
@@ -642,9 +755,68 @@ Deno.serve(async (req: Request) => {
       stateData = newState;
     }
 
+    const today = new Date();
+    const todayDateString = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+
+    // ATOMIC CHECK AND UPDATE: Try to claim today's generation slot
+    // This prevents race conditions when multiple requests come in simultaneously
+    const { data: updatedState, error: updateStateError } = await supabase
+      .from('blog_generation_state')
+      .update({
+        last_generated_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', stateData.id)
+      // Only update if last_generated_at is NOT today (this is the atomic check)
+      .not('last_generated_at', 'gte', todayDateString)
+      .select()
+      .maybeSingle();
+
+    // If update returned null, someone else already claimed today's slot
+    if (!updatedState) {
+      // Return the latest published post from today
+      const { data: latestToday, error: latestTodayError } = await supabase
+        .from('blog_posts')
+        .select('*')
+        .eq('published', true)
+        .gte('published_at', todayDateString)
+        .order('published_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (latestTodayError) throw latestTodayError;
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          post: latestToday,
+          topic: latestToday?.title,
+          reused: true,
+          message: 'Blog post already generated today',
+        }),
+        {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+    }
+
+    // We successfully claimed the slot! Now generate the post
     const currentIndex = stateData.last_topic_index ?? 0;
     const nextIndex = (currentIndex + 1) % BLOG_TOPICS.length;
     const topic = BLOG_TOPICS[nextIndex];
+
+    // Clean up any duplicates of this title from previous runs
+    const { removed: removedDuplicates } = await getLatestPostAndCleanupDuplicates(
+      supabase,
+      topic.title,
+    );
+
+    if (removedDuplicates > 0) {
+      console.log(`Cleaned up ${removedDuplicates} duplicate posts for topic: ${topic.title}`);
+    }
 
     const prompt = generatePromptForTopic(topic);
 
@@ -687,7 +859,7 @@ Deno.serve(async (req: Request) => {
     const slug = `${baseSlug}-${timestamp}`;
     const excerpt = stripHtml(content).substring(0, 220).trim() + '...';
     const readingTime = estimateReadingTime(content);
-    const coverImage = await fetchCoverImage(topic);
+    const coverImage = await ensureCoverImage(topic, supabase);
 
     const { data: postData, error: postError } = await supabase
       .from('blog_posts')
@@ -697,6 +869,7 @@ Deno.serve(async (req: Request) => {
         content,
         content_format: 'html',
         excerpt,
+        meta_description: excerpt,
         author_name: 'AIVO Insights',
         tags: topic.focusKeywords,
         published: true,
@@ -712,11 +885,12 @@ Deno.serve(async (req: Request) => {
 
     if (postError) throw postError;
 
+    // Update the topic index and increment total count
+    // (last_generated_at was already set atomically at the start)
     const { error: updateError } = await supabase
       .from('blog_generation_state')
       .update({
         last_topic_index: nextIndex,
-        last_generated_at: new Date().toISOString(),
         total_generated: (stateData.total_generated || 0) + 1,
         updated_at: new Date().toISOString(),
       })

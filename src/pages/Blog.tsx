@@ -12,6 +12,20 @@ export default function Blog() {
   const [loading, setLoading] = useState(true);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
+  const stripFormatting = (value: string) =>
+    value
+      .replace(/[#*_>`~-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  const uniquePosts = posts.reduce<BlogPost[]>((acc, post) => {
+    const titleKey = post.title.trim().toLowerCase();
+    if (acc.find(existing => existing.title.trim().toLowerCase() === titleKey)) {
+      return acc;
+    }
+    return [...acc, post];
+  }, []);
+
   useEffect(() => {
     fetchPosts();
   }, []);
@@ -33,10 +47,10 @@ export default function Blog() {
     }
   };
 
-  const allTags = Array.from(new Set(posts.flatMap(post => post.tags ?? [])));
+  const allTags = Array.from(new Set(uniquePosts.flatMap(post => post.tags ?? [])));
   const filteredPosts = selectedTag
-    ? posts.filter(post => (post.tags ?? []).includes(selectedTag))
-    : posts;
+    ? uniquePosts.filter(post => (post.tags ?? []).includes(selectedTag))
+    : uniquePosts;
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -93,30 +107,31 @@ export default function Blog() {
 
         {allTags.length > 0 && (
           <section className="mb-12">
-            <div className="flex flex-wrap gap-2 justify-center">
-              <button
-                onClick={() => setSelectedTag(null)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  selectedTag === null
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                All Posts
-              </button>
-              {allTags.map(tag => (
-                <button
-                  key={tag}
-                  onClick={() => setSelectedTag(tag)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                    selectedTag === tag
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+            <div className="max-w-xl mx-auto">
+              <label className="block text-sm font-semibold text-gray-800 mb-2">
+                Filter by topic
+              </label>
+              <div className="relative">
+                <select
+                  value={selectedTag ?? ''}
+                  onChange={(e) => setSelectedTag(e.target.value || null)}
+                  className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-800 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                 >
-                  {tag}
+                  <option value="">All posts</option>
+                  {allTags.map(tag => (
+                    <option key={tag} value={tag}>{tag}</option>
+                  ))}
+                </select>
+                <Tag className="w-4 h-4 text-gray-500 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+              {selectedTag && (
+                <button
+                  onClick={() => setSelectedTag(null)}
+                  className="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Clear filter
                 </button>
-              ))}
+              )}
             </div>
           </section>
         )}
@@ -148,7 +163,7 @@ export default function Blog() {
                 )}
                 <div className="p-6">
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {(post.tags ?? []).map(tag => (
+                    {(post.tags ?? []).slice(0, 3).map(tag => (
                       <span
                         key={tag}
                         className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded"
@@ -157,6 +172,11 @@ export default function Blog() {
                         {tag}
                       </span>
                     ))}
+                    {(post.tags?.length ?? 0) > 3 && (
+                      <span className="text-xs text-gray-500">
+                        +{(post.tags?.length ?? 0) - 3} more
+                      </span>
+                    )}
                   </div>
 
                   <h2 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2">
@@ -166,7 +186,7 @@ export default function Blog() {
                   </h2>
 
                   <p className="text-gray-600 mb-4 line-clamp-3">
-                    {post.excerpt}
+                    {stripFormatting(post.excerpt || post.content || '').slice(0, 180) || 'Read the latest insights on AI visibility.'}
                   </p>
 
                   <div className="flex items-center justify-between text-sm text-gray-500 mb-4">

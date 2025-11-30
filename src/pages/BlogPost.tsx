@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Calendar, Clock, Tag, ArrowLeft } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -15,13 +15,7 @@ export default function BlogPostPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (slug) {
-      fetchPost();
-    }
-  }, [slug]);
-
-  const fetchPost = async () => {
+  const fetchPost = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('blog_posts')
@@ -42,7 +36,13 @@ export default function BlogPostPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [slug]);
+
+  useEffect(() => {
+    if (slug) {
+      fetchPost();
+    }
+  }, [slug, fetchPost]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -51,6 +51,10 @@ export default function BlogPostPage() {
       year: 'numeric',
     });
   };
+
+  const looksLikeHtml = (value: string) => /<\s*(article|section|div|p|h[1-6]|ul|ol|li|strong|em|table)/i.test(value);
+  const looksLikeMarkdown = (value: string) =>
+    /(^|\n)\s*#{1,6}\s+|(\*\*|__)[^*_]+(\*\*|__)|\n- |\n\d+\. /.test(value);
 
   if (loading) {
     return (
@@ -184,15 +188,29 @@ export default function BlogPostPage() {
         </header>
 
         <section className="blog-content text-gray-800 leading-relaxed">
-          {post.content_format === 'html' || !post.content_format ? (
+          {post.content && (post.content_format === 'markdown' || (!looksLikeHtml(post.content) && looksLikeMarkdown(post.content))) ? (
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                h1: (props) => <h1 className="text-3xl font-bold mt-10 mb-4" {...props} />,
+                h2: (props) => <h2 className="text-2xl font-semibold mt-8 mb-3" {...props} />,
+                h3: (props) => <h3 className="text-xl font-semibold mt-6 mb-3" {...props} />,
+                p: (props) => <p className="mb-4 leading-7" {...props} />,
+                ul: (props) => <ul className="list-disc pl-6 mb-4 space-y-2" {...props} />,
+                ol: (props) => <ol className="list-decimal pl-6 mb-4 space-y-2" {...props} />,
+                li: (props) => <li className="leading-7" {...props} />,
+                blockquote: (props) => (
+                  <blockquote className="border-l-4 border-blue-200 pl-4 italic text-gray-700 mb-4" {...props} />
+                ),
+              }}
+            >
+              {post.content}
+            </ReactMarkdown>
+          ) : (
             <div
               className="space-y-4"
               dangerouslySetInnerHTML={{ __html: post.content }}
             />
-          ) : (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {post.content}
-            </ReactMarkdown>
           )}
         </section>
 

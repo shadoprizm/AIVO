@@ -6,7 +6,7 @@ import { ParticleField } from './ParticleField';
 
 export function HeroSection() {
   return (
-    <section className="relative min-h-[90vh] flex items-center overflow-hidden">
+    <section className="relative min-h-[90vh] flex items-center overflow-hidden pb-32">
       {/* Animated neural network background */}
       <NeuralNetworkBackground />
 
@@ -18,7 +18,7 @@ export function HeroSection() {
         <div className="max-w-2xl">
           {/* Glassmorphism container */}
           <motion.div
-            className="backdrop-blur-md bg-slate-900/60 rounded-2xl p-8 md:p-12 border border-white/10 shadow-2xl"
+            className="backdrop-blur-md bg-slate-900/60 rounded-2xl p-8 md:p-12 border border-white/10 shadow-2xl text-center"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
@@ -40,13 +40,13 @@ export function HeroSection() {
 
             {/* Main heading */}
             <motion.h1
-              className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-blue-100 to-blue-200 bg-clip-text text-transparent"
+              className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-white"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
             >
-              Optimize Your Website for{' '}
-              <span className="relative">
+              Optimize Your Website for <br className="hidden md:block" />
+              <span className="relative bg-gradient-to-r from-blue-400 to-blue-200 bg-clip-text text-transparent">
                 AI Visibility
                 <motion.span
                   className="absolute -bottom-2 left-0 h-1 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full"
@@ -70,7 +70,7 @@ export function HeroSection() {
 
             {/* CTA Buttons */}
             <motion.div
-              className="flex flex-col sm:flex-row gap-4"
+              className="flex flex-col sm:flex-row gap-4 justify-center"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.8 }}
@@ -99,7 +99,7 @@ export function HeroSection() {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.6, delay: 1.2 }}
             >
-              <div className="flex flex-wrap items-center gap-6 text-sm text-gray-400">
+              <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-400">
                 <div className="flex items-center gap-2">
                   <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />

@@ -172,6 +172,10 @@ export default function ScanDetailsModal({ scan, siteName, siteUrl, onClose }: S
         <span class="category-score ${getScoreColorClass(score)}">${score}</span>
       </div>
       <div class="category-desc">${categoryDescriptions[key as keyof CategoryScores]}</div>
+      ${analysis_json.category_feedback && analysis_json.category_feedback[key as keyof CategoryScores]?.score_reason ? `
+      <div class="category-desc" style="color: #111827;"><strong>Why this score:</strong> ${analysis_json.category_feedback[key as keyof CategoryScores]?.score_reason}</div>` : ''}
+      ${analysis_json.category_feedback && analysis_json.category_feedback[key as keyof CategoryScores]?.improvement_path ? `
+      <div class="category-desc" style="color: #1d4ed8;"><strong>Path to 100:</strong> ${analysis_json.category_feedback[key as keyof CategoryScores]?.improvement_path}</div>` : ''}
     </div>
   `).join('')}
 
@@ -389,6 +393,7 @@ export default function ScanDetailsModal({ scan, siteName, siteUrl, onClose }: S
                 const Icon = categoryIcons[key as keyof CategoryScores];
                 const isStrength = score >= 70;
                 const isWeakness = score < 60;
+                const feedback = analysis_json.category_feedback?.[key as keyof CategoryScores];
 
                 return (
                   <div key={key} className="space-y-2">
@@ -416,6 +421,16 @@ export default function ScanDetailsModal({ scan, siteName, siteUrl, onClose }: S
                           <p className="text-sm text-gray-600 mt-1">
                             {categoryDescriptions[key as keyof CategoryScores]}
                           </p>
+                          {feedback?.score_reason && (
+                            <p className="text-sm text-gray-800 mt-2">
+                              <span className="font-semibold text-gray-900">Why this score:</span> {feedback.score_reason}
+                            </p>
+                          )}
+                          {feedback?.improvement_path && (
+                            <p className="text-sm text-blue-800 mt-1">
+                              <span className="font-semibold">Path to 100:</span> {feedback.improvement_path}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <span className={`px-3 py-1 rounded-lg font-semibold flex-shrink-0 ml-4 ${getScoreColor(score)}`}>
