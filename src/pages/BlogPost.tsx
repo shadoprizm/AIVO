@@ -14,6 +14,8 @@ export default function BlogPostPage() {
   const [post, setPost] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
+  const [relatedLoading, setRelatedLoading] = useState(false);
 
   const fetchPost = useCallback(async () => {
     try {
@@ -55,6 +57,177 @@ export default function BlogPostPage() {
   const looksLikeHtml = (value: string) => /<\s*(article|section|div|p|h[1-6]|ul|ol|li|strong|em|table)/i.test(value);
   const looksLikeMarkdown = (value: string) =>
     /(^|\n)\s*#{1,6}\s+|(\*\*|__)[^*_]+(\*\*|__)|\n- |\n\d+\. /.test(value);
+  const normalizePlainText = (value: string) =>
+    value
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean)
+      .join('\n\n');
+  const convertMarkdownishToHtml = (value: string) => {
+    let processed = value || '';
+
+    processed = processed.replace(/(^|\s)(#{1,6})\s+([^\n#][^\n]*)/g, (_match, pre, hashes, text) => `${pre}\n${hashes} ${text}\n`);
+    processed = processed.replace(/^###\s+(.*)$/gm, '<h3>$1</h3>');
+    processed = processed.replace(/^##\s+(.*)$/gm, '<h2>$1</h2>');
+    processed = processed.replace(/^#\s+(.*)$/gm, '<h1>$1</h1>');
+    processed = processed.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    processed = processed.replace(/__(.+?)__/g, '<strong>$1</strong>');
+
+    const lines = processed.split(/\r?\n/);
+    const htmlParts: string[] = [];
+    let inUl = false;
+    let inOl = false;
+
+    const closeLists = () => {
+      if (inUl) {
+        htmlParts.push('</ul>');
+        inUl = false;
+      }
+      if (inOl) {
+        htmlParts.push('</ol>');
+        inOl = false;
+      }
+    };
+
+    lines.forEach((line) => {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        closeLists();
+        return;
+      }
+
+      if (/^\d+\.\s+/.test(trimmed)) {
+        if (inUl) {
+          htmlParts.push('</ul>');
+          inUl = false;
+        }
+        if (!inOl) {
+          htmlParts.push('<ol>');
+          inOl = true;
+        }
+        htmlParts.push(`<li>${trimmed.replace(/^\d+\.\s+/, '')}</li>`);
+        return;
+      }
+
+      if (/^[-*]\s+/.test(trimmed)) {
+        if (inOl) {
+          htmlParts.push('</ol>');
+          inOl = false;
+        }
+        if (!inUl) {
+          htmlParts.push('<ul>');
+          inUl = true;
+        }
+        htmlParts.push(`<li>${trimmed.replace(/^[-*]\s+/, '')}</li>`);
+        return;
+      }
+
+      closeLists();
+      htmlParts.push(trimmed);
+    });
+
+    closeLists();
+    processed = htmlParts.join('\n');
+    return processed.replace(/#+/g, '');
+  };
+  const prepareMarkdown = (value: string) => {
+    let next = value || '';
+    next = next.replace(/(\s+)(#{1,6}\s+)/g, '\n\n$2');
+    next = next.replace(/(#{1,6}\s+[^\n#]+)(\s+(?=[A-Za-z0-9]))/g, '$1\n\n');
+    next = next.replace(/(\S)([-*]\s+)/g, '$1\n$2');
+    next = next.replace(/(\n)(#{1,6}\s+)/g, '\n\n$2');
+    return normalizePlainText(next);
+  };
+  const ensureParagraphWrappedHtml = (value: string) => {
+    const trimmed = value?.trim() ?? '';
+    if (!trimmed) return '';
+    const converted = convertMarkdownishToHtml(trimmed);
+    const hasBlocks = /<\s*(p|h[1-6]|ul|ol|blockquote|table|pre|li)/i.test(converted);
+    if (hasBlocks) return converted;
+    const paragraphs = converted
+      .split(/\n{2,}/)
+      .map(chunk => chunk.trim())
+      .filter(Boolean);
+    if (!paragraphs.length) return `<p>${converted}</p>`;
+    return paragraphs.map(p => `<p>${p.replace(/\n+/g, '<br />')}</p>`).join('\n');
+  };
+  const stripFormatting = (value: string) =>
+    value
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/[#*_>`~-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  const fetchRelatedPosts = useCallback(async (currentPost: BlogPost) => {
+    setRelatedLoading(true);
+    try {
+      const tagList = currentPost.tags ?? [];
+      const related: BlogPost[] = [];
+
+      if (tagList.length) {
+        const { data: tagged, error: taggedError } = await supabase
+          .from('blog_posts')
+          .select('id, title, slug, excerpt, content, published_at, created_at, cover_image_url, tags, reading_time_minutes')
+          .eq('published', true)
+          .neq('id', currentPost.id)
+          .contains('tags', [tagList[0]])
+          .order('published_at', { ascending: false })
+          .limit(6);
+
+        if (taggedError) throw taggedError;
+        if (tagged) {
+          related.push(...tagged);
+        }
+      }
+
+      if (related.length < 3) {
+        const { data: fallback, error: fallbackError } = await supabase
+          .from('blog_posts')
+          .select('id, title, slug, excerpt, content, published_at, created_at, cover_image_url, tags, reading_time_minutes')
+          .eq('published', true)
+          .neq('id', currentPost.id)
+          .order('published_at', { ascending: false })
+          .limit(6);
+
+        if (fallbackError) throw fallbackError;
+        if (fallback) {
+          const existing = new Set(related.map(post => post.id));
+          fallback.forEach(post => {
+            if (!existing.has(post.id)) {
+              related.push(post);
+            }
+          });
+        }
+      }
+
+      setRelatedPosts(related.slice(0, 4));
+    } catch (err) {
+      console.error('Error fetching related posts:', err);
+    } finally {
+      setRelatedLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (post) {
+      fetchRelatedPosts(post);
+    }
+  }, [post, fetchRelatedPosts]);
+
+  const contentShape = (() => {
+    const rawContent = post?.content || '';
+    const isHtml =
+      (post?.content_format === 'html' && rawContent.trim() !== '') ||
+      looksLikeHtml(rawContent);
+
+    if (isHtml) {
+      return { type: 'html' as const, value: ensureParagraphWrappedHtml(rawContent) };
+    }
+
+    const markdownSource = looksLikeMarkdown(rawContent) ? prepareMarkdown(rawContent) : normalizePlainText(rawContent);
+    return { type: 'markdown' as const, value: markdownSource };
+  })();
+
 
   if (loading) {
     return (
@@ -188,7 +361,7 @@ export default function BlogPostPage() {
         </header>
 
         <section className="blog-content text-gray-800 leading-relaxed">
-          {post.content && (post.content_format === 'markdown' || (!looksLikeHtml(post.content) && looksLikeMarkdown(post.content))) ? (
+          {contentShape.type === 'markdown' ? (
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
@@ -202,14 +375,15 @@ export default function BlogPostPage() {
                 blockquote: (props) => (
                   <blockquote className="border-l-4 border-blue-200 pl-4 italic text-gray-700 mb-4" {...props} />
                 ),
+                a: (props) => <a className="text-blue-600 hover:text-blue-700 underline font-medium" {...props} />,
               }}
             >
-              {post.content}
+              {contentShape.value}
             </ReactMarkdown>
           ) : (
             <div
               className="space-y-4"
-              dangerouslySetInnerHTML={{ __html: post.content }}
+              dangerouslySetInnerHTML={{ __html: contentShape.value }}
             />
           )}
         </section>
@@ -232,6 +406,55 @@ export default function BlogPostPage() {
             {post.image_source && `via ${post.image_source}`}
           </p>
         )}
+
+        <section className="mt-16 bg-gray-50 border border-gray-200 rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <p className="text-sm uppercase tracking-wide text-gray-500 font-semibold">Keep reading</p>
+              <h2 className="text-2xl font-bold text-gray-900">Related articles from AIVO Insights</h2>
+            </div>
+            <Link to="/blog" className="text-blue-600 hover:text-blue-700 font-medium">
+              View all
+            </Link>
+          </div>
+          {relatedLoading ? (
+            <div className="text-gray-600 flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+              Loading recommendations...
+            </div>
+          ) : relatedPosts.length === 0 ? (
+            <p className="text-gray-600">We&apos;re adding more articles soon. Visit the main blog for the latest insights.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {relatedPosts.map(related => (
+                <Link
+                  key={related.id}
+                  to={`/blog/${related.slug}`}
+                  className="group p-5 bg-white rounded-xl border border-gray-200 hover:border-blue-200 hover:shadow-sm transition"
+                >
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {(related.tags ?? []).slice(0, 2).map(tag => (
+                      <span key={tag} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded">
+                        <Tag className="w-3 h-3" />
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-700 transition-colors mb-2">
+                    {related.title}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {stripFormatting(related.excerpt || related.content || '').slice(0, 140)}…
+                  </p>
+                  <div className="mt-3 flex items-center text-sm text-gray-500 gap-2">
+                    <Clock className="w-4 h-4" />
+                    <span>{related.reading_time_minutes || 5} min read</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
 
         <footer className="mt-12 pt-8 border-t border-gray-200">
           <Link
