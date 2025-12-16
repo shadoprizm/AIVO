@@ -19,8 +19,25 @@ const routes = [
     '/signup'
 ];
 
+function envFlag(name) {
+    const value = process.env[name];
+    if (!value) return false;
+    return value === '1' || value.toLowerCase() === 'true' || value.toLowerCase() === 'yes';
+}
+
+function isVercel() {
+    return Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+}
+
 async function prerender() {
     console.log('Starting prerendering...');
+
+    // Puppeteer/Chrome often can't run in Vercel's build container due to missing system libraries.
+    // Allow builds to succeed by skipping prerender on Vercel (or when explicitly disabled).
+    if (isVercel() || envFlag('SKIP_PRERENDER')) {
+        console.log('Skipping prerender (VERCEL or SKIP_PRERENDER is set).');
+        process.exit(0);
+    }
 
     // Start a static server serving the dist folder
     // We use 'preview' command from vite
@@ -29,13 +46,20 @@ async function prerender() {
         shell: true
     });
 
-    // Wait for server to start
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    let browser;
+    try {
+        // Wait for server to start
+        await new Promise(resolve => setTimeout(resolve, 5000));
 
-    const browser = await puppeteer.launch({
-        headless: 'new',
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
+        browser = await puppeteer.launch({
+            headless: 'new',
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        });
+    } catch (error) {
+        console.error('Prerender setup failed (server or browser launch):', error);
+        server.kill();
+        process.exit(1);
+    }
 
     try {
         for (const route of routes) {
