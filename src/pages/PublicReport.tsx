@@ -4,8 +4,9 @@ import { AlertCircle, CheckCircle2, Copy, ExternalLink, Loader2 } from 'lucide-r
 import MarketingLayout from '../components/layouts/MarketingLayout';
 import SEOHead from '../components/shared/SEOHead';
 import Button from '../components/ui/Button';
-import { fetchPublicReport } from '../lib/publicScan';
+import { claimPublicScan, fetchPublicReport } from '../lib/publicScan';
 import { SITE } from '../config/site';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ReportSite {
   id: string;
@@ -69,6 +70,10 @@ export default function PublicReport() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [claiming, setClaiming] = useState(false);
+  const [claimMessage, setClaimMessage] = useState('');
+  const [claimAttempted, setClaimAttempted] = useState(false);
+  const { user, loading: authLoading } = useAuth();
   const siteUrl = SITE.url.replace(/\/$/, '');
 
   useEffect(() => {
@@ -122,6 +127,38 @@ export default function PublicReport() {
   const site = report?.site as ReportSite | null | undefined;
   const overall = asNumber(score.overall) ?? asNumber(report?.overall_score) ?? 0;
   const status = typeof report?.status === 'string' ? report.status : 'partial';
+  const visibility = typeof report?.visibility === 'string' ? report.visibility : 'unlisted';
+
+  useEffect(() => {
+    if (authLoading || !user || !token || !report || claimAttempted || visibility === 'private') {
+      return;
+    }
+
+    let mounted = true;
+    setClaimAttempted(true);
+    setClaiming(true);
+    claimPublicScan(token)
+      .then(() => {
+        if (mounted) {
+          setClaimMessage('Saved to your account.');
+          setReport((current) => current ? { ...current, visibility: 'private' } : current);
+        }
+      })
+      .catch((claimError) => {
+        if (mounted) {
+          setClaimMessage(claimError instanceof Error ? claimError.message : 'Unable to save report.');
+        }
+      })
+      .finally(() => {
+        if (mounted) {
+          setClaiming(false);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [authLoading, claimAttempted, report, token, user, visibility]);
 
   const copyReportLink = async () => {
     try {
@@ -130,6 +167,12 @@ export default function PublicReport() {
       setTimeout(() => setCopied(false), 2000);
     } catch {
       setError('Unable to copy link. Copy it from the address bar instead.');
+    }
+  };
+
+  const rememberReportRedirect = () => {
+    if (token) {
+      sessionStorage.setItem('aivo-post-auth-redirect', `/report/${token}`);
     }
   };
 
@@ -193,6 +236,11 @@ export default function PublicReport() {
                   </Button>
                 </div>
               </div>
+              {(claiming || claimMessage) && (
+                <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+                  {claiming ? 'Saving this report to your account...' : claimMessage}
+                </div>
+              )}
             </section>
 
             <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
@@ -265,13 +313,15 @@ export default function PublicReport() {
               </div>
             </section>
 
-            <section className="rounded-lg border border-blue-200 bg-blue-50 p-6 text-center">
-              <h2 className="text-2xl font-bold text-gray-900">Save this report</h2>
-              <p className="mt-2 text-gray-700">Create free account to save this report and track improvements.</p>
-              <Link to={`/signup?redirect=/report/${token ?? ''}`} className="mt-4 inline-block">
-                <Button>Create free account to save this report</Button>
-              </Link>
-            </section>
+            {!user && (
+              <section className="rounded-lg border border-blue-200 bg-blue-50 p-6 text-center">
+                <h2 className="text-2xl font-bold text-gray-900">Save this report</h2>
+                <p className="mt-2 text-gray-700">Create free account to save this scan and track improvements.</p>
+                <Link to={`/signup?redirect=/report/${token ?? ''}`} className="mt-4 inline-block" onClick={rememberReportRedirect}>
+                  <Button>Create free account to save this scan</Button>
+                </Link>
+              </section>
+            )}
           </div>
         )}
       </main>

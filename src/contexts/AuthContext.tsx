@@ -26,6 +26,11 @@ const adminEmails = String(import.meta.env.VITE_ADMIN_EMAILS || '')
   .map((email: string) => email.trim().toLowerCase())
   .filter(Boolean);
 
+function getPostAuthRedirect(): string {
+  const redirectPath = sessionStorage.getItem('aivo-post-auth-redirect') || '/dashboard';
+  return `${window.location.origin}${redirectPath.startsWith('/') ? redirectPath : '/dashboard'}`;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -94,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/dashboard` },
+      options: { redirectTo: getPostAuthRedirect() },
     });
 
     if (error) throw error;
@@ -103,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGithub = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'github',
-      options: { redirectTo: `${window.location.origin}/dashboard` },
+      options: { redirectTo: getPostAuthRedirect() },
     });
 
     if (error) throw error;

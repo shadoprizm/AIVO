@@ -239,3 +239,18 @@ Verification:
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
+
+## Task 15 - Claim Flow and Dashboard
+
+Fixes applied:
+
+- Added frontend claim call and auto-claim behavior for authenticated users viewing an unclaimed report.
+- Preserved report return path through OAuth using session storage.
+- Updated email login/signup to honor report redirect paths.
+- Updated dashboard copy to include saved public reports.
+
+Verification:
+
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.

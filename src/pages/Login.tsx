@@ -21,7 +21,11 @@ export default function Login() {
 
     try {
       await login(email, password);
-      navigate('/dashboard');
+      const redirectPath = new URLSearchParams(window.location.search).get('redirect')
+        || sessionStorage.getItem('aivo-post-auth-redirect')
+        || '/dashboard';
+      sessionStorage.removeItem('aivo-post-auth-redirect');
+      navigate(redirectPath.startsWith('/') ? redirectPath : '/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in');
     } finally {

@@ -1,3 +1,5 @@
+import { supabase } from './supabase';
+
 export interface PublicScanResult {
   scanId: string;
   publicToken: string;
@@ -71,4 +73,28 @@ export async function fetchPublicReport(token: string): Promise<Record<string, u
   }
 
   return body;
+}
+
+export async function claimPublicScan(publicToken: string): Promise<{ success: boolean; scanId: string }> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    throw new Error('Sign in to save this report.');
+  }
+
+  const response = await fetch(`${getFunctionsBaseUrl()}/claim-scan`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ publicToken }),
+  });
+
+  const body = await response.json().catch((): PublicScanErrorBody => ({}));
+  if (!response.ok) {
+    const message = typeof body.error === 'string' ? body.error : 'Unable to save report.';
+    throw new Error(message);
+  }
+
+  return body as { success: boolean; scanId: string };
 }
