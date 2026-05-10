@@ -15,6 +15,7 @@ import ScoreSummary from '../components/report/ScoreSummary';
 import ShareActions from '../components/report/ShareActions';
 import TechnicalFindings from '../components/report/TechnicalFindings';
 import { ReportAnswerTest, ReportRecommendation, asNumber } from '../components/report/reportTypes';
+import ReportFeedback from '../components/report/ReportFeedback';
 
 interface ReportSite {
   id: string;
@@ -197,6 +198,7 @@ export default function PublicReport() {
             <TechnicalFindings evidence={technicalEvidence} />
             <Recommendations recommendations={recommendations} />
             <AnswerTests tests={answerTests} />
+            {token && <ReportFeedback publicToken={token} />}
 
             {!user && (
               <section className="rounded-lg border border-blue-200 bg-blue-50 p-6 text-center">

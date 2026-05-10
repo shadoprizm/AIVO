@@ -306,3 +306,17 @@ Verification:
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
+
+## Task 20 - Feedback Capture
+
+Fixes applied:
+
+- Added `scan_feedback` migration for anonymous report usefulness feedback.
+- Added anonymous `scan-feedback` Edge Function with strict token/usefulness validation and no public listing path.
+- Added report feedback UI with optional role, text, and email fields.
+
+Verification:
+
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
