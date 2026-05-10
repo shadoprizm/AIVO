@@ -267,3 +267,16 @@ Verification:
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
+
+## Task 17 - Share and Export Actions
+
+Fixes applied:
+
+- Hardened report share/export actions with clipboard error handling and visible action feedback.
+- Added markdown developer checklist, markdown content brief fallback, print action, and dated JSON evidence download.
+
+Verification:
+
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
