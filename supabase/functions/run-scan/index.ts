@@ -358,7 +358,6 @@ Deno.serve(async (req: Request) => {
         const linkRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi;
         let match;
         const links = new Set<string>();
-        let faqLinkFound = false;
         while ((match = linkRegex.exec(htmlContent)) !== null) {
           links.add(match[1]);
           if (match[1].toLowerCase().includes('faq')) {

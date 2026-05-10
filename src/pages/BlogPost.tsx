@@ -167,7 +167,7 @@ export default function BlogPostPage() {
       if (tagList.length) {
         const { data: tagged, error: taggedError } = await supabase
           .from('blog_posts')
-          .select('id, title, slug, excerpt, content, published_at, created_at, cover_image_url, tags, reading_time_minutes')
+          .select('*')
           .eq('published', true)
           .neq('id', currentPost.id)
           .contains('tags', [tagList[0]])
@@ -183,7 +183,7 @@ export default function BlogPostPage() {
       if (related.length < 3) {
         const { data: fallback, error: fallbackError } = await supabase
           .from('blog_posts')
-          .select('id, title, slug, excerpt, content, published_at, created_at, cover_image_url, tags, reading_time_minutes')
+          .select('*')
           .eq('published', true)
           .neq('id', currentPost.id)
           .order('published_at', { ascending: false })

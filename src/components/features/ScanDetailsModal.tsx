@@ -497,7 +497,7 @@ export default function ScanDetailsModal({ scan, siteName, siteUrl, onClose }: S
                               <div className="flex items-start justify-between mb-2">
                                 <h5 className="font-semibold text-gray-900">{rec.title}</h5>
                                 <span className={`text-xs px-2 py-1 rounded border capitalize flex-shrink-0 ml-2 ${
-                                  rec.implementation_effort === 'easy'
+                                  rec.implementation_effort === 'low'
                                     ? 'bg-green-50 border-green-300 text-green-700'
                                     : rec.implementation_effort === 'medium'
                                     ? 'bg-yellow-50 border-yellow-300 text-yellow-700'

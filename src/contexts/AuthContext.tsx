@@ -2,21 +2,26 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
+interface AuthResult {
+  user: User | null;
+  session: Session | null;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
   isAdmin: boolean;
-  signup: (email: string, password: string, fullName: string) => Promise<any>;
-  login: (email: string, password: string) => Promise<any>;
+  signup: (email: string, password: string, fullName: string) => Promise<AuthResult>;
+  login: (email: string, password: string) => Promise<AuthResult>;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '')
+const adminEmails = String(import.meta.env.VITE_ADMIN_EMAILS || '')
   .split(',')
-  .map(email => email.trim().toLowerCase())
+  .map((email: string) => email.trim().toLowerCase())
   .filter(Boolean);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -103,6 +108,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+// The auth hook intentionally lives beside its provider so consumers share one context instance.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {

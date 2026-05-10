@@ -27,3 +27,21 @@ Baseline `lint` failures:
 - `src/utils/pdfExport.ts`: explicit `any`.
 - `supabase/functions/generate-blog/index.ts`: explicit `any`, unused `isSameDay`, and unused `updateStateError`.
 - `supabase/functions/run-scan/index.ts`: `faqLinkFound` shadowing/unused variable issues.
+
+## Task 1 - Restore Baseline
+
+Fixes applied:
+
+- Typed auth context return values and documented the colocated provider/hook Fast Refresh exception.
+- Replaced `any` traversal in FAQ schema extraction with `ReactNode`/`isValidElement` recursion.
+- Fixed related blog post selection so it satisfies the `BlogPost` interface.
+- Fixed Site Detail hook dependencies and nullable score trend rendering.
+- Removed unused `src/utils/pdfExport.ts`; it was not imported by any report or print flow.
+- Fixed lint issues in existing Edge Functions without changing scan/blog behavior.
+- Kept the `npm install` lockfile sync from Task 0 because `package-lock.json` was out of sync with `package.json`.
+
+Verification:
+
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`; these are existing warnings and do not fail the build.

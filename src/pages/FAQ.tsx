@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { isValidElement, ReactNode, useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import MarketingLayout from '../components/layouts/MarketingLayout';
 import Breadcrumbs from '../components/shared/Breadcrumbs';
@@ -123,23 +123,15 @@ function FAQAccordion({ item, isOpen, onClick }: { item: FAQItem; isOpen: boolea
 export default function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
-  const getAnswerText = (answer: string | JSX.Element): string => {
-    if (typeof answer === 'string') return answer;
-    if (answer.props?.children) {
-      const children = answer.props.children;
-      if (typeof children === 'string') return children;
-      if (Array.isArray(children)) {
-        return children.map((child: any) => {
-          if (typeof child === 'string') return child;
-          if (child?.props?.children) {
-            if (typeof child.props.children === 'string') return child.props.children;
-            if (Array.isArray(child.props.children)) {
-              return child.props.children.map((c: any) => typeof c === 'string' ? c : '').join(' ');
-            }
-          }
-          return '';
-        }).join(' ').trim();
-      }
+  const getAnswerText = (answer: ReactNode): string => {
+    if (typeof answer === 'string' || typeof answer === 'number') {
+      return String(answer);
+    }
+    if (Array.isArray(answer)) {
+      return answer.map(getAnswerText).filter(Boolean).join(' ').trim();
+    }
+    if (isValidElement<{ children?: ReactNode }>(answer)) {
+      return getAnswerText(answer.props.children);
     }
     return '';
   };

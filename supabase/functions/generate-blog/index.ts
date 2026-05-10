@@ -46,6 +46,16 @@ interface StoredBlogPost {
   reading_time_minutes?: number | null;
 }
 
+interface PexelsPhoto {
+  src?: {
+    large2x?: string;
+    large?: string;
+    original?: string;
+  };
+  photographer?: string;
+  photographer_url?: string;
+}
+
 const PEXELS_API_URL = "https://api.pexels.com/v1/search";
 const FALLBACK_COVER_IMAGE_URL = "https://aivoinsights.com/og-image.png";
 
@@ -560,14 +570,14 @@ async function fetchCoverImage(topic: BlogTopic, supabase: SupabaseClient): Prom
       continue;
     }
 
-    const data = await response.json();
+    const data = await response.json() as { photos?: PexelsPhoto[] };
     const photos = data.photos ?? [];
     if (!photos.length) {
       continue;
     }
 
     // Filter out already used images
-    const unusedPhotos = photos.filter((photo: any) => {
+    const unusedPhotos = photos.filter((photo) => {
       const imageUrl = photo.src?.large2x ?? photo.src?.large ?? photo.src?.original;
       return !usedUrls.has(imageUrl);
     });
@@ -616,16 +626,6 @@ function stripHtml(input: string): string {
 function estimateReadingTime(html: string): number {
   const words = stripHtml(html).split(/\s+/).length;
   return Math.max(1, Math.round(words / 200));
-}
-
-function isSameDay(dateString: string | null, comparison: Date): boolean {
-  if (!dateString) return false;
-  const date = new Date(dateString);
-  return (
-    date.getUTCFullYear() === comparison.getUTCFullYear() &&
-    date.getUTCMonth() === comparison.getUTCMonth() &&
-    date.getUTCDate() === comparison.getUTCDate()
-  );
 }
 
 function ensureHtml(content: string): string {
@@ -771,6 +771,8 @@ Deno.serve(async (req: Request) => {
       .not('last_generated_at', 'gte', todayDateString)
       .select()
       .maybeSingle();
+
+    if (updateStateError) throw updateStateError;
 
     // If update returned null, someone else already claimed today's slot
     if (!updatedState) {

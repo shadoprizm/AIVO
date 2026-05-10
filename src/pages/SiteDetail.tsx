@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, Play, Calendar, Clock, CheckCircle, XCircle, AlertCircle, TrendingUp } from 'lucide-react';
+import { ExternalLink, Play, Calendar, Clock, CheckCircle, XCircle, AlertCircle, TrendingUp } from 'lucide-react';
 import DashboardLayout from '../components/layouts/DashboardLayout';
 import Button from '../components/ui/Button';
 import ScanDetailsModal from '../components/features/ScanDetailsModal';
@@ -18,27 +18,13 @@ export default function SiteDetail() {
   const [scanError, setScanError] = useState('');
   const [selectedScan, setSelectedScan] = useState<Scan | null>(null);
 
-  useEffect(() => {
-    if (siteId) {
-      fetchSiteAndScans();
+  const fetchSiteAndScans = useCallback(async () => {
+    if (!siteId) {
+      setError('Site not found');
+      setLoading(false);
+      return;
     }
-  }, [siteId]);
 
-  useEffect(() => {
-    const hasProcessingScans = scans.some(
-      (scan) => scan.status === 'processing' || scan.status === 'pending'
-    );
-
-    if (hasProcessingScans) {
-      const interval = setInterval(() => {
-        fetchSiteAndScans();
-      }, 3000);
-
-      return () => clearInterval(interval);
-    }
-  }, [scans, siteId]);
-
-  const fetchSiteAndScans = async () => {
     try {
       const { data: siteData, error: siteError } = await supabase
         .from('sites')
@@ -69,7 +55,25 @@ export default function SiteDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [siteId]);
+
+  useEffect(() => {
+    fetchSiteAndScans();
+  }, [fetchSiteAndScans]);
+
+  useEffect(() => {
+    const hasProcessingScans = scans.some(
+      (scan) => scan.status === 'processing' || scan.status === 'pending'
+    );
+
+    if (hasProcessingScans) {
+      const interval = setInterval(() => {
+        fetchSiteAndScans();
+      }, 3000);
+
+      return () => clearInterval(interval);
+    }
+  }, [fetchSiteAndScans, scans]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -161,6 +165,11 @@ export default function SiteDetail() {
     );
   }
 
+  const completedScans = scans.filter(
+    (scan): scan is Scan & { overall_score: number } =>
+      scan.status === 'completed' && scan.overall_score !== null
+  );
+
   return (
     <DashboardLayout>
       <Breadcrumbs
@@ -190,14 +199,13 @@ export default function SiteDetail() {
               <ExternalLink className="w-4 h-4" />
             </a>
 
-            {scans.filter(s => s.status === 'completed' && s.overall_score !== null).slice(0, 5).length > 1 && (
+            {completedScans.slice(0, 5).length > 1 && (
               <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
                 <TrendingUp className="w-5 h-5 text-blue-600" />
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Score Trend (Last 5 Scans)</p>
                   <div className="flex items-center gap-2">
-                    {scans
-                      .filter(s => s.status === 'completed' && s.overall_score !== null)
+                    {completedScans
                       .slice(0, 5)
                       .reverse()
                       .map((scan, idx) => (
@@ -210,7 +218,7 @@ export default function SiteDetail() {
                           }`}>
                             {scan.overall_score}
                           </span>
-                          {idx < Math.min(4, scans.filter(s => s.status === 'completed' && s.overall_score !== null).length - 1) && (
+                          {idx < Math.min(4, completedScans.length - 1) && (
                             <span className="mx-1 text-gray-400">→</span>
                           )}
                         </span>
