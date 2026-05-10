@@ -62,3 +62,20 @@ Verification:
 - `npm run build` with `.env` temporarily moved to `.env.bak`: passed.
 - Confirmed `public/sitemap.xml` exists and contains only the eight required static routes in no-env mode.
 - No-env prerender logged footer timeout warnings for prerendered routes because frontend Supabase env was absent; the build exited successfully.
+
+## Task 3 - Centralize Config
+
+Fixes applied:
+
+- Added `src/config/site.ts` as the frontend source of truth for name, domain, canonical URL, description, and support email.
+- Replaced frontend domain literals in SEO metadata, schema objects, breadcrumbs, and footer links with `SITE` values.
+- Updated sitemap generation to use `VITE_SITE_URL` with a documented production fallback.
+- Documented the remaining intentional production domain literals in static HTML, `robots.txt`, generated sitemap output, and Edge Function fallbacks.
+
+Verification:
+
+- `rg "aivoinsights\\.com" src scripts supabase public index.html`: remaining matches are intentional canonical/static fallbacks or generated sitemap absolute URLs.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- First `npm run build` failed because `%VITE_SITE_URL%` in `index.html` has no safe fallback when the env var is absent locally. Static HTML canonical tags were restored with an explanatory comment.
+- Final `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.

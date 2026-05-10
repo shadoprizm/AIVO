@@ -1,16 +1,20 @@
 import MarketingLayout from '../components/layouts/MarketingLayout';
 import SEOHead from '../components/shared/SEOHead';
+import { SITE } from '../config/site';
 
 export default function TermsOfService() {
+  const siteUrl = SITE.url.replace(/\/$/, '');
+  const legalEmail = `legal@${SITE.domain}`;
+
   return (
     <MarketingLayout>
       <SEOHead
         title="Terms of Service | AIVO Insights"
         description="Read AIVO Insights' Terms of Service, including usage guidelines, user responsibilities, service limitations, and legal agreements."
-        canonical="https://aivoinsights.com/terms"
+        canonical={`${siteUrl}/terms`}
         ogTitle="Terms of Service - AIVO Insights"
         ogDescription="Terms and conditions for using AIVO Insights AI visibility analysis platform."
-        ogImage="https://aivoinsights.com/og-image.png"
+        ogImage={`${siteUrl}/og-image.png`}
       />
       <div className="max-w-4xl mx-auto px-6 py-16">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">Terms of Service</h1>
@@ -174,7 +178,7 @@ export default function TermsOfService() {
               If you have questions about these Terms of Service, please contact us at:
             </p>
             <p className="text-gray-700 leading-relaxed mt-4">
-              Email: <a href="mailto:legal@aivoinsights.com" className="text-blue-600 hover:text-blue-700">legal@aivoinsights.com</a>
+              Email: <a href={`mailto:${legalEmail}`} className="text-blue-600 hover:text-blue-700">{legalEmail}</a>
             </p>
           </section>
         </div>

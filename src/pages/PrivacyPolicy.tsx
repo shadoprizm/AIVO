@@ -1,16 +1,20 @@
 import MarketingLayout from '../components/layouts/MarketingLayout';
 import SEOHead from '../components/shared/SEOHead';
+import { SITE } from '../config/site';
 
 export default function PrivacyPolicy() {
+  const siteUrl = SITE.url.replace(/\/$/, '');
+  const privacyEmail = `privacy@${SITE.domain}`;
+
   return (
     <MarketingLayout>
       <SEOHead
         title="Privacy Policy | AIVO Insights"
         description="Learn about AIVO Insights' privacy practices, data collection, usage, security measures, and your rights regarding personal information."
-        canonical="https://aivoinsights.com/privacy"
+        canonical={`${siteUrl}/privacy`}
         ogTitle="Privacy Policy - AIVO Insights"
         ogDescription="Our commitment to protecting your privacy and data security."
-        ogImage="https://aivoinsights.com/og-image.png"
+        ogImage={`${siteUrl}/og-image.png`}
       />
       <div className="max-w-4xl mx-auto px-6 py-16">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">Privacy Policy</h1>
@@ -168,7 +172,7 @@ export default function PrivacyPolicy() {
               If you have questions about this Privacy Policy or our privacy practices, please contact us at:
             </p>
             <p className="text-gray-700 leading-relaxed mt-4">
-              Email: <a href="mailto:privacy@aivoinsights.com" className="text-blue-600 hover:text-blue-700">privacy@aivoinsights.com</a>
+              Email: <a href={`mailto:${privacyEmail}`} className="text-blue-600 hover:text-blue-700">{privacyEmail}</a>
             </p>
           </section>
         </div>

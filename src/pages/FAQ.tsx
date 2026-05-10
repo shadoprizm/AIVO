@@ -4,6 +4,7 @@ import MarketingLayout from '../components/layouts/MarketingLayout';
 import Breadcrumbs from '../components/shared/Breadcrumbs';
 import SEOHead from '../components/shared/SEOHead';
 import { Link } from 'react-router-dom';
+import { SITE } from '../config/site';
 
 interface FAQItem {
   question: string;
@@ -89,7 +90,7 @@ const faqs: FAQItem[] = [
   },
   {
     question: 'Can I get support if I have questions?',
-    answer: 'Absolutely! Contact us at contact@aivoinsights.com for support, questions, or feedback. We typically respond within 24 hours on business days.',
+    answer: `Absolutely! Contact us at ${SITE.supportEmail} for support, questions, or feedback. We typically respond within 24 hours on business days.`,
   },
 ];
 
@@ -122,6 +123,7 @@ function FAQAccordion({ item, isOpen, onClick }: { item: FAQItem; isOpen: boolea
 
 export default function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const siteUrl = SITE.url.replace(/\/$/, '');
 
   const getAnswerText = (answer: ReactNode): string => {
     if (typeof answer === 'string' || typeof answer === 'number') {
@@ -154,10 +156,10 @@ export default function FAQ() {
       <SEOHead
         title="FAQ - Frequently Asked Questions | AIVO Insights"
         description="Common questions about AIVO Insights, AI visibility optimization, AIVO Score, scan limits, recommendations, and how to improve your website's AI discoverability."
-        canonical="https://aivoinsights.com/faq"
+        canonical={`${siteUrl}/faq`}
         ogTitle="Frequently Asked Questions - AIVO Insights"
         ogDescription="Everything you need to know about AIVO Insights and AI visibility optimization."
-        ogImage="https://aivoinsights.com/og-image.png"
+        ogImage={`${siteUrl}/og-image.png`}
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
 
@@ -196,7 +198,7 @@ export default function FAQ() {
             We're here to help! Reach out to our team for personalized support.
           </p>
           <a
-            href="mailto:contact@aivoinsights.com"
+            href={`mailto:${SITE.supportEmail}`}
             className="inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
           >
             Contact Support

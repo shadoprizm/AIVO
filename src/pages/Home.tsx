@@ -6,19 +6,21 @@ import SEOHead from '../components/shared/SEOHead';
 import Button from '../components/ui/Button';
 import { HeroSection } from '../components/hero';
 import { AnimatedSection, AnimatedCard, StaggerContainer, StaggerItem } from '../components/ui/AnimatedSection';
+import { SITE } from '../config/site';
 
 export default function Home() {
+  const siteUrl = SITE.url.replace(/\/$/, '');
   const organizationSchema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: 'AIVO Insights',
+    name: SITE.name,
     description: 'AI Visibility Optimization platform that analyzes websites for AI model discoverability',
-    url: 'https://aivoinsights.com',
-    logo: 'https://aivoinsights.com/logo.png',
+    url: siteUrl,
+    logo: `${siteUrl}/logo.png`,
     sameAs: [],
     contactPoint: {
       '@type': 'ContactPoint',
-      email: 'contact@aivoinsights.com',
+      email: SITE.supportEmail,
       contactType: 'Customer Service',
     },
   };
@@ -26,7 +28,7 @@ export default function Home() {
   const softwareSchema = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
-    name: 'AIVO Insights',
+    name: SITE.name,
     applicationCategory: 'WebApplication',
     description: 'Optimize your website for AI visibility. Analyze how AI models interpret your content and get actionable recommendations to improve discoverability.',
     offers: {
@@ -101,10 +103,10 @@ export default function Home() {
       <SEOHead
         title="AIVO Insights - Optimize Your Website for AI Visibility"
         description="Analyze how AI models like ChatGPT, Claude, and Gemini interpret your website. Get your AIVO Score and actionable recommendations to improve AI discoverability."
-        canonical="https://aivoinsights.com"
+        canonical={siteUrl}
         ogTitle="AIVO Insights - Optimize Your Website for AI Visibility"
         ogDescription="Analyze how AI models interpret your content. Get your AIVO Score and recommendations to improve discoverability."
-        ogImage="https://aivoinsights.com/og-image.png"
+        ogImage={`${siteUrl}/og-image.png`}
         ogType="website"
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />

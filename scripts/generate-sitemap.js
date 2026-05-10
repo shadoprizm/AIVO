@@ -13,7 +13,8 @@ const __dirname = path.dirname(__filename);
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 
-const BASE_URL = 'https://aivoinsights.com';
+// Production fallback is intentionally centralized here for the Node sitemap build.
+const BASE_URL = (process.env.VITE_SITE_URL || 'https://aivoinsights.com').replace(/\/$/, '');
 
 const STATIC_ROUTES = [
     { path: '/', changefreq: 'weekly', priority: '1.0' },
@@ -28,6 +29,7 @@ const STATIC_ROUTES = [
 
 function buildSitemap(posts = []) {
     let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<!-- Absolute production URLs are required by the sitemap protocol and come from VITE_SITE_URL or the documented production fallback. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml"

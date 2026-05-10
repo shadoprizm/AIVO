@@ -6,6 +6,7 @@ import SEOHead from '../components/shared/SEOHead';
 import Breadcrumbs from '../components/shared/Breadcrumbs';
 import { supabase } from '../lib/supabase';
 import { BlogPost } from '../types/database';
+import { SITE } from '../config/site';
 
 export default function Blog() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -60,18 +61,19 @@ export default function Blog() {
     });
   };
 
+  const siteUrl = SITE.url.replace(/\/$/, '');
   const blogSchema = {
     '@context': 'https://schema.org',
     '@type': 'Blog',
     name: 'AIVO Insights Blog',
     description: 'Expert insights on AI visibility optimization, semantic SEO, and improving your website\'s discoverability in AI-powered search',
-    url: 'https://aivoinsights.com/blog',
+    url: `${siteUrl}/blog`,
     publisher: {
       '@type': 'Organization',
-      name: 'AIVO Insights',
+      name: SITE.name,
       logo: {
         '@type': 'ImageObject',
-        url: 'https://aivoinsights.com/logo.png',
+        url: `${siteUrl}/logo.png`,
       },
     },
   };
@@ -81,10 +83,10 @@ export default function Blog() {
       <SEOHead
         title="Blog - AI Visibility & SEO Insights | AIVO Insights"
         description="Expert articles on AI visibility optimization, semantic SEO best practices, schema markup, and strategies to improve your website's discoverability in AI-powered search."
-        canonical="https://aivoinsights.com/blog"
+        canonical={`${siteUrl}/blog`}
         ogTitle="AIVO Insights Blog"
         ogDescription="Learn how to optimize your website for AI visibility with expert insights and best practices."
-        ogImage="https://aivoinsights.com/og-image.png"
+        ogImage={`${siteUrl}/og-image.png`}
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(blogSchema) }} />
 

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Brain } from 'lucide-react';
+import { SITE } from '../../config/site';
 
 export default function Footer() {
   return (
@@ -9,7 +10,7 @@ export default function Footer() {
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-2 text-white mb-4">
               <Brain className="w-6 h-6 text-blue-500" />
-              <span className="text-xl font-bold">AIVO Insights</span>
+              <span className="text-xl font-bold">{SITE.name}</span>
             </div>
             <p className="text-sm text-gray-400 max-w-md">
               Optimize your website for AI visibility. Analyze how AI models interpret your content and get actionable recommendations to improve discoverability.
@@ -29,13 +30,13 @@ export default function Footer() {
             <ul className="space-y-2 text-sm">
               <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
               <li><Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
-              <li><a href="mailto:contact@aivoinsights.com" className="hover:text-white transition-colors">Contact Us</a></li>
+              <li><a href={`mailto:${SITE.supportEmail}`} className="hover:text-white transition-colors">Contact Us</a></li>
             </ul>
           </div>
         </div>
 
         <div className="border-t border-gray-800 mt-12 pt-8 text-sm text-center text-gray-400 space-y-2">
-          <p>&copy; {new Date().getFullYear()} AIVO Insights. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} {SITE.name}. All rights reserved.</p>
           <p className="text-sm text-gray-500 mt-2">
             Custom Built by{' '}
             <a

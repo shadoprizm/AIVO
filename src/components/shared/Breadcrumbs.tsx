@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
+import { SITE } from '../../config/site';
 
 interface BreadcrumbItem {
   label: string;
@@ -11,6 +12,7 @@ interface BreadcrumbsProps {
 }
 
 export default function Breadcrumbs({ items }: BreadcrumbsProps) {
+  const siteUrl = SITE.url.replace(/\/$/, '');
   const breadcrumbSchema = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
@@ -18,7 +20,7 @@ export default function Breadcrumbs({ items }: BreadcrumbsProps) {
       '@type': 'ListItem',
       position: index + 1,
       name: item.label,
-      ...(item.href && { item: `https://aivoinsights.com${item.href}` }),
+      ...(item.href && { item: `${siteUrl}${item.href}` }),
     })),
   };
 

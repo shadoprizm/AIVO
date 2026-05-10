@@ -57,7 +57,9 @@ interface PexelsPhoto {
 }
 
 const PEXELS_API_URL = "https://api.pexels.com/v1/search";
-const FALLBACK_COVER_IMAGE_URL = "https://aivoinsights.com/og-image.png";
+// Production fallback is intentional for Edge Functions that cannot import Vite site config.
+const SITE_URL = (Deno.env.get("SITE_URL") ?? "https://aivoinsights.com").replace(/\/$/, "");
+const FALLBACK_COVER_IMAGE_URL = `${SITE_URL}/og-image.png`;
 
 const adminEmails = (Deno.env.get("ADMIN_EMAILS") ?? "")
   .split(",")

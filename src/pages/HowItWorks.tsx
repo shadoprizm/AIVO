@@ -3,8 +3,10 @@ import { Brain, FileText, CheckCircle2, TrendingUp, Code, MessageSquare } from '
 import MarketingLayout from '../components/layouts/MarketingLayout';
 import SEOHead from '../components/shared/SEOHead';
 import Button from '../components/ui/Button';
+import { SITE } from '../config/site';
 
 export default function HowItWorks() {
+  const siteUrl = SITE.url.replace(/\/$/, '');
   const articleSchema = {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -12,14 +14,14 @@ export default function HowItWorks() {
     description: 'Understanding AI visibility optimization and the AIVO methodology for improving your website\'s AI discoverability',
     author: {
       '@type': 'Organization',
-      name: 'AIVO Insights',
+      name: SITE.name,
     },
     publisher: {
       '@type': 'Organization',
-      name: 'AIVO Insights',
+      name: SITE.name,
       logo: {
         '@type': 'ImageObject',
-        url: 'https://aivoinsights.com/logo.png',
+        url: `${siteUrl}/logo.png`,
       },
     },
     datePublished: '2024-01-01',
@@ -58,10 +60,10 @@ export default function HowItWorks() {
       <SEOHead
         title="How AIVO Insights Works - AI Visibility Optimization"
         description="Learn how AIVO Insights analyzes your website for AI visibility. Understanding the AIVO methodology, scoring categories, and optimization best practices for AI models."
-        canonical="https://aivoinsights.com/how-it-works"
+        canonical={`${siteUrl}/how-it-works`}
         ogTitle="How AIVO Insights Works"
         ogDescription="Understand AI visibility optimization and the AIVO methodology for improving your website's AI discoverability."
-        ogImage="https://aivoinsights.com/og-image.png"
+        ogImage={`${siteUrl}/og-image.png`}
         ogType="article"
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />

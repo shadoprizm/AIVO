@@ -8,6 +8,7 @@ import SEOHead from '../components/shared/SEOHead';
 import Breadcrumbs from '../components/shared/Breadcrumbs';
 import { supabase } from '../lib/supabase';
 import { BlogPost } from '../types/database';
+import { SITE } from '../config/site';
 
 export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -253,6 +254,7 @@ export default function BlogPostPage() {
     );
   }
 
+  const siteUrl = SITE.url.replace(/\/$/, '');
   const articleSchema = {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
@@ -268,15 +270,15 @@ export default function BlogPostPage() {
     },
     publisher: {
       '@type': 'Organization',
-      name: 'AIVO Insights',
+      name: SITE.name,
       logo: {
         '@type': 'ImageObject',
-        url: 'https://aivoinsights.com/logo.png',
+        url: `${siteUrl}/logo.png`,
       },
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': `https://aivoinsights.com/blog/${post.slug}`,
+      '@id': `${siteUrl}/blog/${post.slug}`,
     },
     keywords: post.tags.join(', '),
   };
@@ -286,10 +288,10 @@ export default function BlogPostPage() {
       <SEOHead
         title={`${post.title} | AIVO Insights Blog`}
         description={post.meta_description || post.excerpt}
-        canonical={`https://aivoinsights.com/blog/${post.slug}`}
+        canonical={`${siteUrl}/blog/${post.slug}`}
         ogTitle={post.title}
         ogDescription={post.excerpt}
-        ogImage={post.cover_image_url || 'https://aivoinsights.com/og-image.png'}
+        ogImage={post.cover_image_url || `${siteUrl}/og-image.png`}
         ogType="article"
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
