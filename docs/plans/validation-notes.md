@@ -112,3 +112,18 @@ Verification:
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
+
+## Task 6 - Anonymous Scan Schema
+
+Fixes applied:
+
+- Added a migration for anonymous scan metadata, public tokens, v2 JSON fields, request hashes, request domain, source, and nullable direct scan ownership.
+- Preserved the existing scan status values to avoid adding a duplicate `status` column.
+- Updated RLS so authenticated users can select scans they own directly or through the related site, with no public table SELECT policy.
+- Updated frontend database types for nullable site ownership and public scan fields.
+
+Verification:
+
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.

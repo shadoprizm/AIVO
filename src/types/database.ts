@@ -1,6 +1,6 @@
 export interface Site {
   id: string;
-  user_id: string;
+  user_id: string | null;
   name: string;
   url: string;
   created_at: string;
@@ -51,12 +51,25 @@ export interface AnalysisJson {
   analysis_version: string;
 }
 
+export type ScanVisibility = 'private' | 'unlisted' | 'public';
+export type ScanSource = 'dashboard' | 'public';
+export type JsonObject = Record<string, unknown>;
+
 export interface Scan {
   id: string;
   site_id: string;
+  user_id: string | null;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   overall_score: number | null;
   analysis_json: AnalysisJson | null;
+  public_token: string | null;
+  visibility: ScanVisibility | null;
+  request_ip_hash: string | null;
+  user_agent_hash: string | null;
+  request_domain: string | null;
+  source: ScanSource | string | null;
+  v2_score: JsonObject | null;
+  v2_evidence: JsonObject | null;
   created_at: string;
   completed_at: string | null;
 }
