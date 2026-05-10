@@ -8,272 +8,50 @@
 
   <url>
     <loc>https://aivoinsights.com/</loc>
-    <lastmod>2025-11-25</lastmod>
+    <lastmod>2026-05-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://aivoinsights.com/how-it-works</loc>
-    <lastmod>2025-11-25</lastmod>
+    <lastmod>2026-05-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://aivoinsights.com/faq</loc>
-    <lastmod>2025-11-25</lastmod>
+    <lastmod>2026-05-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://aivoinsights.com/blog</loc>
-    <lastmod>2025-11-25</lastmod>
+    <lastmod>2026-05-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://aivoinsights.com/privacy</loc>
-    <lastmod>2025-11-25</lastmod>
+    <lastmod>2026-05-10</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://aivoinsights.com/terms</loc>
-    <lastmod>2025-11-25</lastmod>
+    <lastmod>2026-05-10</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://aivoinsights.com/signup</loc>
-    <lastmod>2025-11-25</lastmod>
+    <lastmod>2026-05-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://aivoinsights.com/login</loc>
-    <lastmod>2025-11-25</lastmod>
+    <lastmod>2026-05-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/complete-guide-to-schema-markup-for-ai-model-optimization-1764021541991</loc>
-    <lastmod>2025-11-24</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/what-is-ai-visibility-and-why-it-matters-for-your-website-in-2025-1764021498809</loc>
-    <lastmod>2025-11-24</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/what-is-ai-visibility-and-why-it-matters-for-your-website-in-2025-1764021485303</loc>
-    <lastmod>2025-11-24</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/optimizing-for-voice-search-and-conversational-ai-queries-1764018042451</loc>
-    <lastmod>2025-11-24</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/optimizing-for-voice-search-and-conversational-ai-queries-1764018022122</loc>
-    <lastmod>2025-11-24</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/optimizing-for-voice-search-and-conversational-ai-queries-1764018018384</loc>
-    <lastmod>2025-11-24</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/link-building-strategies-that-improve-ai-model-citations-1763834093845</loc>
-    <lastmod>2025-11-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/link-building-strategies-that-improve-ai-model-citations-1763834089623</loc>
-    <lastmod>2025-11-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/complete-guide-to-ai-crawler-management-and-robots-txt-configuration-1763817933118</loc>
-    <lastmod>2025-11-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/real-world-case-studies-websites-that-improved-ai-visibility-by-300-1763817913211</loc>
-    <lastmod>2025-11-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/real-world-case-studies-websites-that-improved-ai-visibility-by-300-1763817905309</loc>
-    <lastmod>2025-11-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/15-critical-ai-visibility-mistakes-that-are-hurting-your-website-1763800093557</loc>
-    <lastmod>2025-11-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/measuring-and-tracking-ai-visibility-metrics-that-matter-1763800072092</loc>
-    <lastmod>2025-11-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/measuring-and-tracking-ai-visibility-metrics-that-matter-1763800068445</loc>
-    <lastmod>2025-11-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/international-and-multilingual-seo-for-global-ai-visibility-1763798906521</loc>
-    <lastmod>2025-11-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/image-and-video-optimization-for-ai-model-understanding-1763798859765</loc>
-    <lastmod>2025-11-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/image-and-video-optimization-for-ai-model-understanding-1763798852957</loc>
-    <lastmod>2025-11-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/content-freshness-and-update-strategies-for-ai-model-indexing-1763785395683</loc>
-    <lastmod>2025-11-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/content-freshness-and-update-strategies-for-ai-model-indexing-1763785382846</loc>
-    <lastmod>2025-11-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/content-freshness-and-update-strategies-for-ai-model-indexing-1763785382529</loc>
-    <lastmod>2025-11-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/product-schema-and-e-commerce-optimization-for-ai-shopping-assistants-1763772711038</loc>
-    <lastmod>2025-11-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/product-schema-and-e-commerce-optimization-for-ai-shopping-assistants-1763772695124</loc>
-    <lastmod>2025-11-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/product-schema-and-e-commerce-optimization-for-ai-shopping-assistants-1763772692798</loc>
-    <lastmod>2025-11-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/local-business-optimization-for-ai-powered-local-search-1763767216387</loc>
-    <lastmod>2025-11-21</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/local-business-optimization-for-ai-powered-local-search-1763767189792</loc>
-    <lastmod>2025-11-21</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/local-business-optimization-for-ai-powered-local-search-1763767187135</loc>
-    <lastmod>2025-11-21</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/meta-tags-and-metadata-that-ai-models-actually-use-1763761511046</loc>
-    <lastmod>2025-11-21</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/meta-tags-and-metadata-that-ai-models-actually-use-1763761498413</loc>
-    <lastmod>2025-11-21</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/meta-tags-and-metadata-that-ai-models-actually-use-1763761492450</loc>
-    <lastmod>2025-11-21</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/document-structure-best-practices-for-maximum-ai-discoverability-1763761370599</loc>
-    <lastmod>2025-11-21</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/document-structure-best-practices-for-maximum-ai-discoverability-1763761366850</loc>
-    <lastmod>2025-11-21</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/optimizing-your-website-for-ai-powered-question-answering-1763747361763</loc>
-    <lastmod>2025-11-21</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/building-authority-and-trust-signals-that-ai-models-recognize-1763747325466</loc>
-    <lastmod>2025-11-21</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/building-authority-and-trust-signals-that-ai-models-recognize-1763747320502</loc>
-    <lastmod>2025-11-21</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/semantic-seo-optimizing-for-meaning-and-context-in-ai-search-1763740482938</loc>
-    <lastmod>2025-11-21</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/semantic-seo-optimizing-for-meaning-and-context-in-ai-search-1763740480516</loc>
-    <lastmod>2025-11-21</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://aivoinsights.com/blog/technical-seo-best-practices-for-ai-model-crawling-and-indexing-1763599937157</loc>
-    <lastmod>2025-11-20</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
   </url>
 </urlset>

@@ -13,13 +13,6 @@ const __dirname = path.dirname(__filename);
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    console.error('Error: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be set in .env');
-    process.exit(1);
-}
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 const BASE_URL = 'https://aivoinsights.com';
 
 const STATIC_ROUTES = [
@@ -33,10 +26,61 @@ const STATIC_ROUTES = [
     { path: '/login', changefreq: 'monthly', priority: '0.5' },
 ];
 
+function buildSitemap(posts = []) {
+    let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
+`;
+
+    STATIC_ROUTES.forEach(route => {
+        sitemap += `
+  <url>
+    <loc>${BASE_URL}${route.path}</loc>
+    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
+    <changefreq>${route.changefreq}</changefreq>
+    <priority>${route.priority}</priority>
+  </url>`;
+    });
+
+    posts.forEach(post => {
+        const lastMod = post.updated_at || post.published_at || new Date().toISOString();
+        sitemap += `
+  <url>
+    <loc>${BASE_URL}/blog/${post.slug}</loc>
+    <lastmod>${new Date(lastMod).toISOString().split('T')[0]}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>`;
+    });
+
+    sitemap += '\n</urlset>';
+    return sitemap;
+}
+
+function writeSitemap(sitemap) {
+    const publicDir = path.resolve(__dirname, '../public');
+    const sitemapPath = path.join(publicDir, 'sitemap.xml');
+
+    fs.writeFileSync(sitemapPath, sitemap);
+    console.log(`Sitemap generated successfully at ${sitemapPath}`);
+}
+
 async function generateSitemap() {
     console.log('Generating sitemap...');
 
     try {
+        if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+            console.warn('Warning: VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY is missing. Generating static sitemap only.');
+            writeSitemap(buildSitemap());
+            return;
+        }
+
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         // Fetch blog posts
         const { data: posts, error } = await supabase
             .from('blog_posts')
@@ -50,51 +94,11 @@ async function generateSitemap() {
 
         console.log(`Found ${posts?.length || 0} blog posts.`);
 
-        let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
-        xmlns:xhtml="http://www.w3.org/1999/xhtml"
-        xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0"
-        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
-        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
-`;
-
-        // Add static routes
-        STATIC_ROUTES.forEach(route => {
-            sitemap += `
-  <url>
-    <loc>${BASE_URL}${route.path}</loc>
-    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
-    <changefreq>${route.changefreq}</changefreq>
-    <priority>${route.priority}</priority>
-  </url>`;
-        });
-
-        // Add blog posts
-        if (posts) {
-            posts.forEach(post => {
-                const lastMod = post.updated_at || post.published_at || new Date().toISOString();
-                sitemap += `
-  <url>
-    <loc>${BASE_URL}/blog/${post.slug}</loc>
-    <lastmod>${new Date(lastMod).toISOString().split('T')[0]}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>`;
-            });
-        }
-
-        sitemap += '\n</urlset>';
-
-        const publicDir = path.resolve(__dirname, '../public');
-        const sitemapPath = path.join(publicDir, 'sitemap.xml');
-
-        fs.writeFileSync(sitemapPath, sitemap);
-        console.log(`Sitemap generated successfully at ${sitemapPath}`);
+        writeSitemap(buildSitemap(posts || []));
 
     } catch (err) {
-        console.error('Error generating sitemap:', err);
-        process.exit(1);
+        console.warn('Warning: failed to fetch dynamic sitemap entries. Generating static sitemap only.', err);
+        writeSitemap(buildSitemap());
     }
 }
 

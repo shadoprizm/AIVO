@@ -45,3 +45,20 @@ Verification:
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`; these are existing warnings and do not fail the build.
+
+## Task 2 - Resilient Sitemap
+
+Fixes applied:
+
+- `scripts/generate-sitemap.js` now generates the core static sitemap when Supabase env vars are missing.
+- Missing env now logs a warning and does not call `process.exit(1)`.
+- Dynamic blog URLs are included only when Supabase env vars are available and the query succeeds.
+- Dynamic fetch failures fall back to the static sitemap.
+
+Verification:
+
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build` with `.env` temporarily moved to `.env.bak`: passed.
+- Confirmed `public/sitemap.xml` exists and contains only the eight required static routes in no-env mode.
+- No-env prerender logged footer timeout warnings for prerendered routes because frontend Supabase env was absent; the build exited successfully.
