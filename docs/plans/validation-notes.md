@@ -141,3 +141,18 @@ Verification:
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
+
+## Task 8 - DeepSeek V4 Analysis Module
+
+Fixes applied:
+
+- Added `deepseek-analyzer.ts` using direct `fetch` to `DEEPSEEK_BASE_URL/chat/completions`.
+- Uses `DEEPSEEK_API_KEY`, `DEEPSEEK_MODEL`, temperature `0.1`, JSON response format, and `max_tokens` `4000`.
+- Implements anonymous/authenticated timeout helper, one retry on 429/503, and null-on-failure degradation behavior.
+- Prompt enforces evidence-backed recommendations and strict JSON output.
+
+Verification:
+
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
