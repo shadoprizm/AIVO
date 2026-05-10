@@ -14,6 +14,8 @@ interface AuthContextType {
   isAdmin: boolean;
   signup: (email: string, password: string, fullName: string) => Promise<AuthResult>;
   login: (email: string, password: string) => Promise<AuthResult>;
+  signInWithGoogle: () => Promise<void>;
+  signInWithGithub: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -89,6 +91,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data;
   };
 
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/dashboard` },
+    });
+
+    if (error) throw error;
+  };
+
+  const signInWithGithub = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: { redirectTo: `${window.location.origin}/dashboard` },
+    });
+
+    if (error) throw error;
+  };
+
   const logout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
@@ -103,6 +123,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAdmin,
     signup,
     login,
+    signInWithGoogle,
+    signInWithGithub,
     logout,
   };
 

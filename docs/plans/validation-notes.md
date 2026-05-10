@@ -212,3 +212,17 @@ Verification:
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
+
+## Task 13 - OAuth Auth
+
+Fixes applied:
+
+- Added Google and GitHub OAuth helpers to the auth context.
+- Added reusable OAuth buttons with loading/error states and free-account note.
+- Integrated OAuth options above email/password fallback on login and signup.
+
+Verification:
+
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
