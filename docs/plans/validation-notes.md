@@ -170,3 +170,17 @@ Verification:
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
+
+## Task 10 - Public Scan Edge Function
+
+Fixes applied:
+
+- Added `public-scan` Edge Function with URL validation, normalization, private URL blocking, keyed IP/user-agent hashing, IP/domain rate limits, anonymous site/scan creation, technical checks, DeepSeek analysis, answer simulations, and partial degradation mode.
+- Strengthened shared fetch redirects to cap at three and block unsafe redirect targets.
+- Public API returns `complete` or `partial` while preserving the existing database scan status values.
+
+Verification:
+
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.

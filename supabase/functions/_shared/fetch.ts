@@ -1,5 +1,8 @@
+import { isPrivateIp } from './url.ts';
+
 // SECURITY: keep the bot identity explicit for site owners and avoid browser-like spoofing.
 const USER_AGENT = 'AIVO-Insights-Bot/1.0 (+https://aivoinsights.com/bot)';
+const MAX_REDIRECTS = 3;
 
 async function readLimitedBody(response: Response, maxBytes: number): Promise<Uint8Array> {
   if (!response.body) {
@@ -49,17 +52,40 @@ export async function fetchWithTimeout(
   try {
     const headers = new Headers(options.headers);
     headers.set('User-Agent', USER_AGENT);
+    let currentUrl = url;
+    let redirectCount = 0;
+    let response: Response;
 
-    const response = await fetch(url, {
-      ...options,
-      redirect: options.redirect ?? 'follow',
-      signal: controller.signal,
-      headers,
-    });
+    while (true) {
+      response = await fetch(currentUrl, {
+        ...options,
+        redirect: 'manual',
+        signal: controller.signal,
+        headers,
+      });
+
+      if (![301, 302, 303, 307, 308].includes(response.status)) break;
+
+      const location = response.headers.get('location');
+      if (!location) break;
+      if (redirectCount >= MAX_REDIRECTS) {
+        throw new Error('Redirect limit exceeded');
+      }
+
+      const nextUrl = new URL(location, currentUrl);
+      // SECURITY: prevent redirect-based SSRF into localhost or private IP literals.
+      if (nextUrl.protocol !== 'https:' || isPrivateIp(nextUrl.hostname)) {
+        throw new Error('Blocked unsafe redirect target');
+      }
+
+      currentUrl = nextUrl.toString();
+      redirectCount += 1;
+    }
 
     const limitedBody = await readLimitedBody(response, maxBytes);
     const responseHeaders = new Headers(response.headers);
     responseHeaders.set('x-aivo-bytes-read', String(limitedBody.length));
+    responseHeaders.set('x-aivo-redirect-count', String(redirectCount));
 
     return new Response(limitedBody, {
       status: response.status,
