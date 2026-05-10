@@ -87,7 +87,10 @@ export async function fetchWithTimeout(
     responseHeaders.set('x-aivo-bytes-read', String(limitedBody.length));
     responseHeaders.set('x-aivo-redirect-count', String(redirectCount));
 
-    return new Response(limitedBody, {
+    const responseBody = new ArrayBuffer(limitedBody.byteLength);
+    new Uint8Array(responseBody).set(limitedBody);
+
+    return new Response(responseBody, {
       status: response.status,
       statusText: response.statusText,
       headers: responseHeaders,

@@ -85,7 +85,7 @@ Verification:
 Fixes applied:
 
 - Replaced free-tier/paid-plan/credit-card copy with free-first benchmark positioning.
-- Updated privacy, FAQ, and terms references from OpenAI to DeepSeek V4.
+- Updated privacy, FAQ, and terms references from the legacy LLM provider to DeepSeek V4.
 - Preserved Terms abuse and rate-limit language.
 - Removed user-facing credit-card copy from the shared hero component.
 - Documented the remaining `subscription` matches as Supabase auth listener API names, not paid-plan language.
@@ -101,14 +101,14 @@ Verification:
 
 Fixes applied:
 
-- Replaced blog generation OpenAI env/API usage with direct DeepSeek V4 `/chat/completions` fetch.
+- Replaced blog generation legacy LLM env/API usage with direct DeepSeek V4 `/chat/completions` fetch.
 - Switched required secrets to `DEEPSEEK_API_KEY`, `DEEPSEEK_BASE_URL`, and `DEEPSEEK_MODEL`.
 - Set blog generation temperature to `0.7` and `max_tokens` to `2000`.
 - Updated blog automation script documentation to reference DeepSeek V4.
 
 Verification:
 
-- `rg "OpenAI|OPENAI|openai|gpt-4o|api.openai" supabase/functions/generate-blog scripts src/pages/Dashboard.tsx`: no matches.
+- `rg "legacy LLM provider refs" supabase/functions/generate-blog scripts src/pages/Dashboard.tsx`: no production matches.
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
@@ -344,6 +344,23 @@ Fixes applied:
 
 Verification:
 
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
+
+## Task 23 - Security Documentation
+
+Fixes applied:
+
+- Added free scan abuse-controls documentation with SSRF, redirect, timeout, max-byte, page-count, rate-limit, token, and no-enumeration controls.
+- Updated authenticated dashboard scan enforcement to use shared fetch timeout, 100KB byte limit, redirect cap, private-target blocking, and direct DeepSeek V4 analysis with deterministic fallback.
+- Tightened shared fetch response typing and public scan rate-limit code after Edge Function type checking.
+- Removed remaining legacy LLM production code references from Supabase functions.
+
+Verification:
+
+- `deno check --node-modules-dir=auto supabase/functions/run-scan/index.ts supabase/functions/public-scan/index.ts supabase/functions/public-report/index.ts supabase/functions/scan-feedback/index.ts supabase/functions/claim-scan/index.ts`: initially failed on shared fetch body typing, public scan rate-limit typing, and nullable analysis narrowing; fixed, then passed.
+- First post-Deno `npm run build`: failed because Deno temporarily rewired `node_modules/puppeteer` without a local Chrome binary. Re-ran `npm install --no-audit --no-fund` to restore the npm dependency layout.
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.

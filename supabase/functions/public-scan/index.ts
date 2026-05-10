@@ -25,7 +25,7 @@ interface PublicScanResponse {
   message?: string;
 }
 
-function jsonResponse(body: Record<string, unknown>, status = 200): Response {
+function jsonResponse(body: object, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
@@ -83,44 +83,6 @@ async function hostnameResolvesToPrivate(hostname: string): Promise<boolean> {
 
 function domainFromUrl(url: string): string {
   return new URL(url).hostname.toLowerCase().replace(/^www\./, '');
-}
-
-async function enforceRateLimits(
-  supabase: ReturnType<typeof createClient>,
-  ipHash: string,
-  domain: string
-): Promise<Response | null> {
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
-  const { count: ipCount, error: ipError } = await supabase
-    .from('scans')
-    .select('id', { count: 'exact', head: true })
-    .eq('request_ip_hash', ipHash)
-    .gte('created_at', since);
-
-  if (ipError) {
-    return jsonResponse({ error: 'Unable to verify scan rate limit' }, 500);
-  }
-
-  if ((ipCount ?? 0) >= 3) {
-    return jsonResponse({ error: 'Rate limit reached: 3 scans per day from this network.' }, 429);
-  }
-
-  const { count: domainCount, error: domainError } = await supabase
-    .from('scans')
-    .select('id', { count: 'exact', head: true })
-    .eq('request_domain', domain)
-    .gte('created_at', since);
-
-  if (domainError) {
-    return jsonResponse({ error: 'Unable to verify domain rate limit' }, 500);
-  }
-
-  if ((domainCount ?? 0) >= 1) {
-    return jsonResponse({ error: 'Rate limit reached: this domain has already been scanned today.' }, 429);
-  }
-
-  return null;
 }
 
 function technicalOnlyAnalysis(technical: TechnicalCheckResult): ScanAnalysis {
@@ -189,8 +151,35 @@ Deno.serve(async (req: Request) => {
     const userAgent = req.headers.get('user-agent') ?? 'unknown';
     const ipHash = await hmacSha256(hashSecret, ip);
     const userAgentHash = await hmacSha256(hashSecret, userAgent);
-    const rateLimitResponse = await enforceRateLimits(supabase, ipHash, domain);
-    if (rateLimitResponse) return rateLimitResponse;
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    const { count: ipCount, error: ipLimitError } = await supabase
+      .from('scans')
+      .select('id', { count: 'exact', head: true })
+      .eq('request_ip_hash', ipHash)
+      .gte('created_at', since);
+
+    if (ipLimitError) {
+      return jsonResponse({ error: 'Unable to verify scan rate limit' }, 500);
+    }
+
+    if ((ipCount ?? 0) >= 3) {
+      return jsonResponse({ error: 'Rate limit reached: 3 scans per day from this network.' }, 429);
+    }
+
+    const { count: domainCount, error: domainLimitError } = await supabase
+      .from('scans')
+      .select('id', { count: 'exact', head: true })
+      .eq('request_domain', domain)
+      .gte('created_at', since);
+
+    if (domainLimitError) {
+      return jsonResponse({ error: 'Unable to verify domain rate limit' }, 500);
+    }
+
+    if ((domainCount ?? 0) >= 1) {
+      return jsonResponse({ error: 'Rate limit reached: this domain has already been scanned today.' }, 429);
+    }
 
     const { data: site, error: siteError } = await supabase
       .from('sites')

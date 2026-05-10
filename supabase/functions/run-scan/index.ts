@@ -1,5 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { fetchWithTimeout } from '../_shared/fetch.ts';
+import { isPrivateIp, isValidUrl, normalizeUrl } from '../_shared/url.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -62,22 +64,7 @@ interface FaqFinding {
 // Helper to check if a URL exists
 async function checkUrlExists(url: string): Promise<boolean> {
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
-    let res = await fetch(url, {
-      method: 'HEAD',
-      signal: controller.signal,
-      headers: { 'User-Agent': 'AIVO-Insights-Bot/1.0' }
-    });
-    // Some servers block HEAD; retry with GET if non-2xx
-    if (!res.ok) {
-      res = await fetch(url, {
-        method: 'GET',
-        signal: controller.signal,
-        headers: { 'User-Agent': 'AIVO-Insights-Bot/1.0' }
-      });
-    }
-    clearTimeout(timeoutId);
+    const res = await fetchWithTimeout(url, { method: 'GET' }, 3000, 2048);
     return res.ok;
   } catch {
     return false;
@@ -88,14 +75,7 @@ async function checkUrlExists(url: string): Promise<boolean> {
 async function fetchSitemap(baseUrl: string): Promise<string[]> {
   try {
     const sitemapUrl = new URL('/sitemap.xml', baseUrl).toString();
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-    const response = await fetch(sitemapUrl, {
-      headers: { 'User-Agent': 'AIVO-Insights-Bot/1.0' },
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
+    const response = await fetchWithTimeout(sitemapUrl, {}, 5000, 100000);
 
     if (!response.ok) return [];
 
@@ -128,13 +108,7 @@ function normalizeLinkToSameOrigin(link: string, baseUrl: URL): string | null {
 
 async function fetchPageContent(url: string, timeoutMs = 7000): Promise<string> {
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'AIVO-Insights-Bot/1.0' },
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
+    const res = await fetchWithTimeout(url, {}, timeoutMs, 100000);
     if (!res.ok) return '';
     const text = await res.text();
     return text.length > 80000 ? text.slice(0, 80000) : text;
@@ -255,6 +229,72 @@ function sanitizeFaqRecommendations(
   return filtered;
 }
 
+interface ChatMessage {
+  role: 'system' | 'user';
+  content: string;
+}
+
+async function hostnameResolvesToPrivate(hostname: string): Promise<boolean> {
+  if (isPrivateIp(hostname)) return true;
+  if (typeof Deno.resolveDns !== 'function') return false;
+
+  try {
+    // SECURITY: authenticated scans still must not be usable for DNS-based SSRF into private networks.
+    const records = await Deno.resolveDns(hostname, 'A');
+    return records.some((record) => isPrivateIp(record));
+  } catch {
+    return false;
+  }
+}
+
+async function callDeepSeek(messages: ChatMessage[], timeoutMs: number): Promise<string | null> {
+  const apiKey = Deno.env.get('DEEPSEEK_API_KEY');
+  const baseUrl = (Deno.env.get('DEEPSEEK_BASE_URL') || 'https://api.deepseek.com/v1').replace(/\/$/, '');
+  const model = Deno.env.get('DEEPSEEK_MODEL') || 'deepseek-chat';
+  if (!apiKey) return null;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model,
+          messages,
+          temperature: 0.3,
+          response_format: { type: 'json_object' },
+          max_tokens: 3000,
+        }),
+      });
+
+      if ((response.status === 429 || response.status === 503) && attempt === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 750));
+        continue;
+      }
+
+      if (!response.ok) return null;
+      const data = await response.json().catch(() => null) as { choices?: Array<{ message?: { content?: string } }> } | null;
+      return data?.choices?.[0]?.message?.content ?? null;
+    } catch {
+      if (attempt === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 750));
+        continue;
+      }
+      return null;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  return null;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -266,7 +306,6 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const authHeader = req.headers.get('Authorization');
@@ -296,6 +335,13 @@ Deno.serve(async (req: Request) => {
 
     if (siteError || !site) {
       throw new Error('Site not found or unauthorized');
+    }
+
+    const siteUrl = normalizeUrl(site.url);
+    const parsedSiteUrl = new URL(siteUrl);
+    // SECURITY: dashboard scans are authenticated, but site URLs still cannot target localhost or private networks.
+    if (!isValidUrl(siteUrl) || await hostnameResolvesToPrivate(parsedSiteUrl.hostname)) {
+      throw new Error('Blocked unsafe site URL');
     }
 
     const recentScansResult = await supabase
@@ -332,12 +378,7 @@ Deno.serve(async (req: Request) => {
     let isCsrShell = false;
 
     try {
-      const response = await fetch(site.url, {
-        headers: {
-          'User-Agent': 'AIVO-Insights-Bot/1.0',
-        },
-        signal: AbortSignal.timeout(10000),
-      });
+      const response = await fetchWithTimeout(siteUrl, {}, 8000, 100000);
 
       if (response.ok) {
         htmlContent = await response.text();
@@ -366,7 +407,7 @@ Deno.serve(async (req: Request) => {
         }
 
         // 2. Fetch Sitemap
-        const sitemapUrls = await fetchSitemap(site.url);
+        const sitemapUrls = await fetchSitemap(siteUrl);
         if (sitemapUrls.length > 0) {
           detectedFiles.push('sitemap.xml');
           sitemapUrls.forEach(url => links.add(url));
@@ -375,7 +416,7 @@ Deno.serve(async (req: Request) => {
           }
         }
 
-        const baseUrl = new URL(site.url);
+        const baseUrl = new URL(siteUrl);
         const faqCandidates = new Set<string>();
 
         // Normalize links and capture any FAQ-like paths for deeper inspection
@@ -499,17 +540,10 @@ Deno.serve(async (req: Request) => {
     let overallScore = 0;
     let status = 'failed';
 
-    if (!fetchError && htmlContent && openaiApiKey) {
+    if (!fetchError && htmlContent) {
       try {
-        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openaiApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
+        const deepSeekContent = await callDeepSeek(
+          [
               {
                 role: 'system',
                 content: `You are an AI visibility optimization expert. Analyze websites for how well AI language models (ChatGPT, Claude, Gemini) can interpret and cite their content.
@@ -573,7 +607,7 @@ Return ONLY valid JSON matching this exact structure:
                 role: 'user',
                 content: `Analyze this website HTML for AI visibility:
 
-URL: ${site.url}
+URL: ${siteUrl}
 
 **Detected Site Structure:**
 - Is CSR Shell: ${isCsrShell ? 'YES (Content likely invisible to simple crawlers)' : 'NO'}
@@ -586,60 +620,52 @@ ${faqSummaryForPrompt}
 HTML Content (Truncated):
 ${htmlContent}`,
               },
-            ],
-            temperature: 0.3,
-            response_format: { type: 'json_object' },
-          }),
-        });
+          ],
+          45000
+        );
 
-        if (openaiResponse.ok) {
-          const openaiData = await openaiResponse.json();
-          const content = openaiData.choices[0]?.message?.content;
+        if (deepSeekContent) {
+          const parsedAnalysis = JSON.parse(deepSeekContent) as AnalysisJson;
+          const completedAnalysis: AnalysisJson = {
+            ...parsedAnalysis,
+            analyzed_at: new Date().toISOString(),
+            analysis_version: '1.5-deepseek',
+            category_feedback: ensureCategoryFeedback(parsedAnalysis.category_scores, parsedAnalysis.category_feedback),
+            faq_findings: faqFindings,
+          };
 
-          if (content) {
-            const parsedAnalysis = JSON.parse(content);
-            analysisJson = {
-              ...parsedAnalysis,
-              analyzed_at: new Date().toISOString(),
-              analysis_version: '1.4',
-              category_feedback: ensureCategoryFeedback(parsedAnalysis.category_scores, parsedAnalysis.category_feedback),
-              faq_findings: faqFindings,
-            };
+          completedAnalysis.recommendations = sanitizeFaqRecommendations(
+            completedAnalysis.recommendations,
+            faqAdequacy,
+            isCsrShell
+          );
 
-            analysisJson.recommendations = sanitizeFaqRecommendations(
-              analysisJson.recommendations,
-              faqAdequacy,
-              isCsrShell
-            );
-
-            if (analysisJson.category_scores.qa_readiness > qaReadinessCeiling) {
-              analysisJson.category_scores.qa_readiness = qaReadinessCeiling;
-              analysisJson.notes = [
-                ...(analysisJson.notes || []),
-                `QA Readiness capped at ${qaReadinessCeiling} because FAQ content adequacy is "${faqAdequacy}".`,
-              ];
-              if (analysisJson.category_feedback?.qa_readiness) {
-                analysisJson.category_feedback.qa_readiness.score_reason = `Capped at ${qaReadinessCeiling} due to detected FAQ adequacy (${faqAdequacy}).`;
-                analysisJson.category_feedback.qa_readiness.improvement_path = 'Add a well-structured FAQ page with multiple clear Q&A pairs and schema markup to unlock full credit.';
-              }
+          if (completedAnalysis.category_scores.qa_readiness > qaReadinessCeiling) {
+            completedAnalysis.category_scores.qa_readiness = qaReadinessCeiling;
+            completedAnalysis.notes = [
+              ...(completedAnalysis.notes || []),
+              `QA Readiness capped at ${qaReadinessCeiling} because FAQ content adequacy is "${faqAdequacy}".`,
+            ];
+            if (completedAnalysis.category_feedback?.qa_readiness) {
+              completedAnalysis.category_feedback.qa_readiness.score_reason = `Capped at ${qaReadinessCeiling} due to detected FAQ adequacy (${faqAdequacy}).`;
+              completedAnalysis.category_feedback.qa_readiness.improvement_path = 'Add a well-structured FAQ page with multiple clear Q&A pairs and schema markup to unlock full credit.';
             }
-
-            const recomputedOverall = Math.round(
-              Object.values(analysisJson.category_scores).reduce((sum, val) => sum + val, 0) / categoryKeys.length
-            );
-            analysisJson.overall_score = Math.min(analysisJson.overall_score, recomputedOverall);
-            overallScore = analysisJson.overall_score;
-            status = 'completed';
           }
-        } else {
-          console.error('OpenAI API error:', await openaiResponse.text());
-          throw new Error('OpenAI analysis failed');
+
+          const recomputedOverall = Math.round(
+            Object.values(completedAnalysis.category_scores).reduce((sum, val) => sum + val, 0) / categoryKeys.length
+          );
+          completedAnalysis.overall_score = Math.min(completedAnalysis.overall_score, recomputedOverall);
+          analysisJson = completedAnalysis;
+          overallScore = completedAnalysis.overall_score;
+          status = 'completed';
         }
       } catch (aiError) {
-        console.error('AI analysis error:', aiError);
-        status = 'failed';
+        console.error('DeepSeek analysis error:', aiError);
       }
-    } else if (!fetchError && htmlContent) {
+    }
+
+    if (!fetchError && htmlContent && !analysisJson) {
       // Fallback logic
       const hasH1 = /<h1[^>]*>/.test(htmlContent);
       const hasHeadings = /<h[2-6][^>]*>/.test(htmlContent);
@@ -718,8 +744,8 @@ ${htmlContent}`,
           category: 'semantic_structure',
           severity: 'medium',
           title: 'Basic analysis performed',
-          description: 'OpenAI integration not configured. This is a basic structural analysis.',
-          suggested_fix: 'Configure OpenAI API key for detailed AI visibility analysis.',
+          description: 'DeepSeek V4 analysis was unavailable, so AIVO returned deterministic structural findings from the fetched HTML.',
+          suggested_fix: 'Review the detected HTML, metadata, FAQ, and crawl-access findings, then rescan after DeepSeek V4 is available.',
           implementation_effort: 'low',
         },
       ];
@@ -748,7 +774,7 @@ ${htmlContent}`,
         warnings: isCsrShell ? ['Client-Side Rendering detected. Content may be invisible to AI crawlers.'] : [],
         faq_findings: faqFindings,
         analyzed_at: new Date().toISOString(),
-        analysis_version: '1.4',
+        analysis_version: '1.5-deterministic',
       };
       const recomputedOverall = Math.round(
         Object.values(analysisJson.category_scores).reduce((sum, val) => sum + val, 0) / categoryKeys.length
