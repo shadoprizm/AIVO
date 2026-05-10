@@ -79,3 +79,20 @@ Verification:
 - `npm run lint`: passed.
 - First `npm run build` failed because `%VITE_SITE_URL%` in `index.html` has no safe fallback when the env var is absent locally. Static HTML canonical tags were restored with an explanatory comment.
 - Final `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
+
+## Task 4 - Remove Paid-Plan Language
+
+Fixes applied:
+
+- Replaced free-tier/paid-plan/credit-card copy with free-first benchmark positioning.
+- Updated privacy, FAQ, and terms references from OpenAI to DeepSeek V4.
+- Preserved Terms abuse and rate-limit language.
+- Removed user-facing credit-card copy from the shared hero component.
+- Documented the remaining `subscription` matches as Supabase auth listener API names, not paid-plan language.
+
+Verification:
+
+- `rg "paid|pricing|tier|credit card|subscription|Stripe|checkout" src`: only Supabase auth listener `subscription` property names remain, with code comments.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.

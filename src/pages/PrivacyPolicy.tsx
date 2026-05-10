@@ -87,7 +87,7 @@ export default function PrivacyPolicy() {
               We do not sell your personal information. We may share your information only in the following circumstances:
             </p>
             <ul className="list-disc pl-6 text-gray-700 space-y-2">
-              <li><strong>Service Providers:</strong> We use Supabase for database hosting and authentication, and OpenAI for AI-powered analysis. These providers process data on our behalf under strict confidentiality agreements.</li>
+              <li><strong>Service Providers:</strong> We use Supabase for database hosting and authentication, and DeepSeek V4 for AI-powered analysis. These providers process data on our behalf under strict confidentiality agreements.</li>
               <li><strong>Legal Requirements:</strong> We may disclose information if required by law, court order, or governmental request.</li>
               <li><strong>Business Transfers:</strong> If we are involved in a merger, acquisition, or sale of assets, your information may be transferred as part of that transaction.</li>
             </ul>
@@ -100,10 +100,10 @@ export default function PrivacyPolicy() {
             </p>
             <ul className="list-disc pl-6 text-gray-700 space-y-2">
               <li><strong>Supabase:</strong> Database hosting and authentication services</li>
-              <li><strong>OpenAI:</strong> AI-powered website analysis and recommendations</li>
+              <li><strong>DeepSeek V4:</strong> AI-powered website analysis and recommendations</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mt-4">
-              When you use our service, publicly accessible HTML content from the websites you submit is sent to OpenAI for analysis. This data is processed according to OpenAI's data usage policies.
+              When you use our service, publicly accessible HTML content from the websites you submit is sent to DeepSeek V4 for analysis. This data is processed according to DeepSeek's data usage policies.
             </p>
           </section>
 

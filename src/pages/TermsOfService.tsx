@@ -117,7 +117,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Third-Party Services</h2>
             <p className="text-gray-700 leading-relaxed">
-              Our service relies on third-party providers including Supabase for infrastructure and OpenAI for analysis. Your use of AIVO Insights is subject to the terms and availability of these third-party services. We are not responsible for any disruption, limitation, or issues caused by third-party providers.
+              Our service relies on third-party providers including Supabase for infrastructure and DeepSeek V4 for analysis. Your use of AIVO Insights is subject to the terms and availability of these third-party services. We are not responsible for any disruption, limitation, or issues caused by third-party providers.
             </p>
           </section>
 

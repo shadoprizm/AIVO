@@ -89,10 +89,10 @@ export default function Home() {
       },
       {
         '@type': 'Question',
-        name: 'Is there a free tier available?',
+        name: 'Is AIVO free to use?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Yes! Our free tier includes limited monthly scans so you can evaluate AIVO Insights and begin optimizing your content. Paid plans offer unlimited scans, historical tracking, priority support, and advanced features.',
+          text: 'Yes. AIVO Insights is free while we build the public AI visibility benchmark. You can scan your site, review evidence, and use the recommendations without a payment step.',
         },
       },
     ],
@@ -459,10 +459,10 @@ export default function Home() {
               <AnimatedSection delay={0.35}>
                 <div>
                   <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                    Is there a free tier available?
+                    Is AIVO free to use?
                   </h3>
                   <p className="text-gray-700">
-                    Yes! Our free tier includes limited monthly scans so you can evaluate AIVO Insights and begin optimizing your content. Paid plans offer unlimited scans, historical tracking, priority support, and advanced features.
+                    Free while we build the public AI visibility benchmark. You can scan your site, review the evidence, and use the recommendations without a payment step.
                   </p>
                 </div>
               </AnimatedSection>
@@ -501,7 +501,7 @@ export default function Home() {
                 </motion.div>
               </Link>
               <p className="mt-4 text-sm text-blue-100">
-                No credit card required. Start optimizing immediately.
+                Free while we build the public AI visibility benchmark.
               </p>
             </AnimatedSection>
           </div>

@@ -72,7 +72,7 @@ const faqs: FAQItem[] = [
     question: 'Is my website data private and secure?',
     answer: (
       <span>
-        Yes. AIVO only accesses publicly available content from the URLs you submit. All data is encrypted and stored securely. We use Supabase for infrastructure security and OpenAI for AI analysis. See our <Link to="/privacy" className="text-blue-600 hover:text-blue-700">Privacy Policy</Link> for complete details.
+        Yes. AIVO only accesses publicly available content from the URLs you submit. All data is encrypted and stored securely. We use Supabase for infrastructure security and DeepSeek V4 for AI analysis. See our <Link to="/privacy" className="text-blue-600 hover:text-blue-700">Privacy Policy</Link> for complete details.
       </span>
     ),
   },

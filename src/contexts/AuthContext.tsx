@@ -34,7 +34,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let initialSessionChecked = false;
 
     // Set up the auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    // This Supabase API property name is unrelated to paid-plan subscriptions.
+    const { data: { subscription: authListener } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         if (mounted) {
           // Only update state after initial session check is complete
@@ -59,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      authListener.unsubscribe();
     };
   }, []);
 

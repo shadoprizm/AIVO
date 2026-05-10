@@ -12,13 +12,14 @@ export function useAuth() {
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // This Supabase API property name is unrelated to paid-plan subscriptions.
+    const { data: { subscription: authListener } } = supabase.auth.onAuthStateChange((_event, session) => {
       (async () => {
         setUser(session?.user ?? null);
       })();
     });
 
-    return () => subscription.unsubscribe();
+    return () => authListener.unsubscribe();
   }, []);
 
   const signup = async (email: string, password: string, fullName: string) => {
