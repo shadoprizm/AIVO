@@ -1,0 +1,29 @@
+# AIVO Free-First Relaunch Validation Notes
+
+## Task 0 - Branch and Baseline Validation
+
+Branch created: `feature/free-first-relaunch`
+
+Commands run:
+
+- `npm install --no-audit --no-fund`: passed. `package-lock.json` changed and is intentionally left uncommitted until dependency changes are needed.
+- `npm run typecheck`: failed before relaunch changes.
+- `npm run lint`: failed before relaunch changes.
+- `npm run build`: passed. The build regenerated `public/sitemap.xml`; this generated change is intentionally left uncommitted until Task 2.
+
+Baseline `typecheck` failures:
+
+- `src/components/features/ScanDetailsModal.tsx`: compares `implementation_effort` against unsupported `"easy"` value.
+- `src/contexts/AuthContext.tsx`: implicit `any` in the auth context function types.
+- `src/pages/BlogPost.tsx`: related post query result does not satisfy the `BlogPost` interface.
+- `src/pages/SiteDetail.tsx`: unused `ArrowLeft` import and nullable `overall_score` in trend rendering.
+- `src/utils/pdfExport.ts`: missing `jspdf` and `jspdf-autotable` packages, implicit `any`, and unsupported `"easy"` effort comparison.
+
+Baseline `lint` failures:
+
+- `src/contexts/AuthContext.tsx`: explicit `any` in auth function return types.
+- `src/pages/FAQ.tsx`: explicit `any` in schema text extraction.
+- `src/pages/SiteDetail.tsx`: unused import and hook dependency warnings.
+- `src/utils/pdfExport.ts`: explicit `any`.
+- `supabase/functions/generate-blog/index.ts`: explicit `any`, unused `isSameDay`, and unused `updateStateError`.
+- `supabase/functions/run-scan/index.ts`: `faqLinkFound` shadowing/unused variable issues.
