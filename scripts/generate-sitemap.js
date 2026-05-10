@@ -18,6 +18,13 @@ const BASE_URL = (process.env.VITE_SITE_URL || 'https://aivoinsights.com').repla
 
 const STATIC_ROUTES = [
     { path: '/', changefreq: 'weekly', priority: '1.0' },
+    { path: '/free-ai-visibility-checker', changefreq: 'monthly', priority: '0.9' },
+    { path: '/chatgpt-seo-checker', changefreq: 'monthly', priority: '0.9' },
+    { path: '/ai-citation-checker', changefreq: 'monthly', priority: '0.9' },
+    { path: '/llms-txt-checker', changefreq: 'monthly', priority: '0.85' },
+    { path: '/ai-crawler-robots-txt-checker', changefreq: 'monthly', priority: '0.85' },
+    { path: '/geo-audit-checklist', changefreq: 'monthly', priority: '0.85' },
+    { path: '/sample-audits', changefreq: 'monthly', priority: '0.75' },
     { path: '/how-it-works', changefreq: 'monthly', priority: '0.8' },
     { path: '/faq', changefreq: 'monthly', priority: '0.7' },
     { path: '/blog', changefreq: 'weekly', priority: '0.8' },
@@ -28,6 +35,14 @@ const STATIC_ROUTES = [
 ];
 
 function buildSitemap(posts = []) {
+    const uniquePosts = [];
+    const seenSlugs = new Set();
+    for (const post of posts) {
+        if (!post?.slug || seenSlugs.has(post.slug)) continue;
+        seenSlugs.add(post.slug);
+        uniquePosts.push(post);
+    }
+
     let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <!-- Absolute production URLs are required by the sitemap protocol and come from VITE_SITE_URL or the documented production fallback. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
@@ -48,7 +63,7 @@ function buildSitemap(posts = []) {
   </url>`;
     });
 
-    posts.forEach(post => {
+    uniquePosts.forEach(post => {
         const lastMod = post.updated_at || post.published_at || new Date().toISOString();
         sitemap += `
   <url>

@@ -1,0 +1,44 @@
+# AIVO Insights
+
+## Product Summary
+AIVO Insights is a free AI visibility scanner for websites. It checks whether public pages are easy for AI answer engines to crawl, understand, and cite. The scanner reviews crawl access, robots.txt, llms.txt, sitemap.xml, page metadata, schema.org signals, heading structure, answer readiness, trust evidence, and citation readiness.
+
+## Key Pages
+- Homepage: https://aivoinsights.com/
+- How it works: https://aivoinsights.com/how-it-works
+- FAQ: https://aivoinsights.com/faq
+- Blog: https://aivoinsights.com/blog
+- Free AI visibility checker: https://aivoinsights.com/free-ai-visibility-checker
+- ChatGPT SEO checker: https://aivoinsights.com/chatgpt-seo-checker
+- AI citation checker: https://aivoinsights.com/ai-citation-checker
+- llms.txt checker: https://aivoinsights.com/llms-txt-checker
+- AI crawler robots.txt checker: https://aivoinsights.com/ai-crawler-robots-txt-checker
+- GEO audit checklist: https://aivoinsights.com/geo-audit-checklist
+- Sample audits: https://aivoinsights.com/sample-audits
+- Privacy policy: https://aivoinsights.com/privacy
+- Terms of service: https://aivoinsights.com/terms
+
+## What AIVO Does
+- Runs free public scans while AIVO builds the public AI visibility benchmark.
+- Produces an AIVO Score with sub-scores for crawl access, entity clarity, answer readiness, citation likelihood, trust evidence, and competitive presence.
+- Returns evidence-based recommendations that map to detected crawl, metadata, schema, content, or trust issues.
+- Provides shareable unlisted report URLs for public scans.
+- Supports account creation so users can save reports and track improvements.
+- Uses DeepSeek V4 for AI analysis and deterministic technical checks for degradation mode.
+
+## What AIVO Does Not Claim
+- AIVO does not guarantee placement or citations in any AI assistant.
+- AIVO does not claim to inspect private assistant sessions.
+- AIVO does not sell access tiers or paid plans during the free-first launch.
+- AIVO does not provide legal, security, or financial advice.
+- AIVO does not crawl private networks and blocks localhost and private IP ranges for public scans.
+
+## Sample Audit Links
+- Local service sample: https://aivoinsights.com/sample-audits#local-service
+- SaaS sample: https://aivoinsights.com/sample-audits#saas
+- Ecommerce sample: https://aivoinsights.com/sample-audits#ecommerce
+- Consultant sample: https://aivoinsights.com/sample-audits#consultant
+- Cybersecurity sample: https://aivoinsights.com/sample-audits#cybersecurity
+
+## Contact
+Support and product questions: contact@aivoinsights.com

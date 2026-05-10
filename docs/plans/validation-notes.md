@@ -320,3 +320,18 @@ Verification:
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
+
+## Task 21 - Self-GEO Improvements
+
+Fixes applied:
+
+- Added `public/llms.txt` with product summary, key pages, claims boundaries, contact information, and sample audit links.
+- Added six high-intent GEO landing pages with route-specific metadata, FAQ schema, public scan CTAs, and unique long-form copy.
+- Added anonymized sample audit page with local service, SaaS, ecommerce, consultant, and cybersecurity examples.
+- Updated app routes, sitemap generation, prerender routes, and blog sitemap de-duplication.
+
+Verification:
+
+- `npm run typecheck`: initially failed because `BriefcaseBusiness` is not exported by `lucide-react`; replaced it with `Briefcase`, then passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. New landing pages prerendered successfully. Prerender still logs footer timeout warnings for `/login` and `/signup`.

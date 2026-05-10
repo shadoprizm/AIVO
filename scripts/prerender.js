@@ -10,6 +10,13 @@ const distDir = path.resolve(__dirname, '../dist');
 
 const routes = [
     '/',
+    '/free-ai-visibility-checker',
+    '/chatgpt-seo-checker',
+    '/ai-citation-checker',
+    '/llms-txt-checker',
+    '/ai-crawler-robots-txt-checker',
+    '/geo-audit-checklist',
+    '/sample-audits',
     '/how-it-works',
     '/faq',
     '/blog',

@@ -14,6 +14,15 @@ import Dashboard from './pages/Dashboard';
 import SiteDetail from './pages/SiteDetail';
 import AdminBlog from './pages/AdminBlog';
 import PublicReport from './pages/PublicReport';
+import {
+  AICitationChecker,
+  AICrawlerRobotsTxtChecker,
+  ChatGPTSEOChecker,
+  FreeAIVisibilityChecker,
+  GeoAuditChecklist,
+  LlmsTxtChecker,
+} from './pages/GeoLandingPages';
+import SampleAudits from './pages/SampleAudits';
 import ProtectedRoute from './components/ProtectedRoute';
 import ScrollToTop from './components/ScrollToTop';
 import { trackPageView } from './lib/analytics';
@@ -45,6 +54,13 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/report/:token" element={<PublicReport />} />
+        <Route path="/free-ai-visibility-checker" element={<FreeAIVisibilityChecker />} />
+        <Route path="/chatgpt-seo-checker" element={<ChatGPTSEOChecker />} />
+        <Route path="/ai-citation-checker" element={<AICitationChecker />} />
+        <Route path="/llms-txt-checker" element={<LlmsTxtChecker />} />
+        <Route path="/ai-crawler-robots-txt-checker" element={<AICrawlerRobotsTxtChecker />} />
+        <Route path="/geo-audit-checklist" element={<GeoAuditChecklist />} />
+        <Route path="/sample-audits" element={<SampleAudits />} />
         <Route
           path="/dashboard"
           element={
