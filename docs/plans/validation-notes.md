@@ -184,3 +184,17 @@ Verification:
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
+
+## Task 11 - Public Report Edge Function
+
+Fixes applied:
+
+- Added `public-report` Edge Function for public token lookup using the Supabase service role.
+- Returns report data for `unlisted` and `public` scans only.
+- Returns 404 for invalid tokens, missing reports, and private scans to prevent enumeration.
+
+Verification:
+
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
