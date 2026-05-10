@@ -364,3 +364,15 @@ Verification:
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
+
+## Task 24 - Deployment Checklist
+
+Fixes applied:
+
+- Added deployment checklist covering Vercel env vars, Supabase Edge Function secrets, auth provider configuration, migrations, Edge Function deployment, site files, and launch smoke readiness.
+
+Verification:
+
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
