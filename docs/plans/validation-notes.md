@@ -127,3 +127,17 @@ Verification:
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
+
+## Task 7 - Shared Scan Modules
+
+Fixes applied:
+
+- Added shared scan interfaces, URL normalization/private IP checks, timeout and max-byte fetching, site discovery, and deterministic technical checks.
+- Discovery fetches homepage, robots.txt, llms.txt, sitemap.xml, top sitemap URLs, and internal page candidates.
+- Technical checks cover AI crawler robots rules, llms.txt, sitemap XML, canonical/title/meta, schema, social metadata, H1/heading order, FAQ schema, and CSR shell risk.
+
+Verification:
+
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
