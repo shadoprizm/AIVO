@@ -254,3 +254,16 @@ Verification:
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
+
+## Task 16 - Report Components
+
+Fixes applied:
+
+- Added report component system for header, score summary, technical findings, answer simulations, sortable recommendations, share actions, and shared report types.
+- Reworked the public report page to use the new report components.
+
+Verification:
+
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
