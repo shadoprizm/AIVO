@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Home from './pages/Home';
 import HowItWorks from './pages/HowItWorks';
@@ -15,12 +16,24 @@ import AdminBlog from './pages/AdminBlog';
 import PublicReport from './pages/PublicReport';
 import ProtectedRoute from './components/ProtectedRoute';
 import ScrollToTop from './components/ScrollToTop';
+import { trackPageView } from './lib/analytics';
+
+function AnalyticsRouteTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    trackPageView(location.pathname);
+  }, [location.pathname]);
+
+  return null;
+}
 
 function App() {
   return (
     <AuthProvider>
       <Router>
         <ScrollToTop />
+        <AnalyticsRouteTracker />
         <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/how-it-works" element={<HowItWorks />} />

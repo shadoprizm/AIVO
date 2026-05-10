@@ -280,3 +280,17 @@ Verification:
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
+
+## Task 18 - Analytics Foundation
+
+Fixes applied:
+
+- Added safe analytics wrapper that no-ops when `VITE_GA_MEASUREMENT_ID` is missing.
+- Sanitizes event properties to avoid emails, IPs, and exact URLs.
+- Added route page-view tracking inside the router.
+
+Verification:
+
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
