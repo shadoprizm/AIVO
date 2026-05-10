@@ -226,3 +226,16 @@ Verification:
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
+
+## Task 14 - Claim Scan Edge Function
+
+Fixes applied:
+
+- Added authenticated `claim-scan` Edge Function.
+- Verifies the JWT with Supabase Auth, validates public token shape, rejects missing/already-claimed reports, and sets `scans.user_id` plus `visibility = private`.
+
+Verification:
+
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
