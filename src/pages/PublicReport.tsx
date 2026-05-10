@@ -7,6 +7,7 @@ import Button from '../components/ui/Button';
 import { claimPublicScan, fetchPublicReport } from '../lib/publicScan';
 import { SITE } from '../config/site';
 import { useAuth } from '../contexts/AuthContext';
+import { trackEvent } from '../lib/analytics';
 import AnswerTests from '../components/report/AnswerTests';
 import Recommendations from '../components/report/Recommendations';
 import ReportHeader from '../components/report/ReportHeader';
@@ -64,6 +65,7 @@ export default function PublicReport() {
         const data = await fetchPublicReport(token);
         if (mounted) {
           setReport(data);
+          trackEvent('report_viewed', { status: typeof data.status === 'string' ? data.status : 'unknown' });
         }
       } catch (reportError) {
         if (mounted) {
@@ -106,6 +108,7 @@ export default function PublicReport() {
         if (mounted) {
           setClaimMessage('Saved to your account.');
           setReport((current) => current ? { ...current, visibility: 'private' } : current);
+          trackEvent('report_claimed');
         }
       })
       .catch((claimError) => {
@@ -175,7 +178,13 @@ export default function PublicReport() {
                 reportUrl={window.location.href}
                 recommendations={recommendations}
                 evidence={evidence}
-                onAction={() => setError('')}
+                onAction={(action) => {
+                  setError('');
+                  if (action === 'link') trackEvent('report_shared');
+                  if (action === 'print') trackEvent('pdf_exported');
+                  if (action === 'checklist') trackEvent('checklist_copied');
+                  if (action === 'brief') trackEvent('content_brief_copied');
+                }}
               />
               {(claiming || claimMessage) && (
                 <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">

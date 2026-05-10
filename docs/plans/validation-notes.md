@@ -294,3 +294,15 @@ Verification:
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
+
+## Task 19 - Event Tracking
+
+Fixes applied:
+
+- Added non-PII funnel events for landing view, public scan start/complete/fail, report view/share/export, auth starts/completions, report claim, and dashboard scan start/complete.
+
+Verification:
+
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.

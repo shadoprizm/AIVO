@@ -7,6 +7,7 @@ import ScanDetailsModal from '../components/features/ScanDetailsModal';
 import Breadcrumbs from '../components/shared/Breadcrumbs';
 import { supabase } from '../lib/supabase';
 import { Site, Scan } from '../types/database';
+import { trackEvent } from '../lib/analytics';
 
 export default function SiteDetail() {
   const { siteId } = useParams<{ siteId: string }>();
@@ -109,6 +110,7 @@ export default function SiteDetail() {
     setScanning(true);
 
     try {
+      trackEvent('dashboard_scan_started');
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-scan`;
       const { data: { session } } = await supabase.auth.getSession();
 
@@ -132,6 +134,7 @@ export default function SiteDetail() {
 
       const newScan = await response.json();
       setScans([newScan, ...scans]);
+      trackEvent('dashboard_scan_completed', { status: newScan.status ?? 'unknown' });
       await fetchSiteAndScans();
     } catch (err) {
       console.error('Error running scan:', err);

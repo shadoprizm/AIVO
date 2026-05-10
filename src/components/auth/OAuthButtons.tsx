@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Chrome, Github } from 'lucide-react';
 import Button from '../ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
+import { trackEvent } from '../../lib/analytics';
 
 export default function OAuthButtons() {
   const { signInWithGoogle, signInWithGithub } = useAuth();
@@ -11,6 +12,7 @@ export default function OAuthButtons() {
   const handleOAuth = async (provider: 'google' | 'github') => {
     setError('');
     setLoadingProvider(provider);
+    trackEvent(provider === 'google' ? 'oauth_google_started' : 'oauth_github_started');
 
     try {
       if (provider === 'google') {

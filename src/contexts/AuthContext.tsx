@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { trackEvent } from '../lib/analytics';
 
 interface AuthResult {
   user: User | null;
@@ -43,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Set up the auth state listener
     // This Supabase API property name is unrelated to paid-plan subscriptions.
     const { data: { subscription: authListener } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         if (mounted) {
           // Only update state after initial session check is complete
           // This prevents the listener from setting null before storage is read
@@ -51,6 +52,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setSession(session);
             setUser(session?.user ?? null);
           }
+        }
+        if (event === 'SIGNED_IN') {
+          const provider = session?.user.app_metadata.provider;
+          if (provider === 'google') trackEvent('oauth_google_completed');
+          if (provider === 'github') trackEvent('oauth_github_completed');
         }
       }
     );

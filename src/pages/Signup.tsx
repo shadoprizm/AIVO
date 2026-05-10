@@ -5,6 +5,7 @@ import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
 import OAuthButtons from '../components/auth/OAuthButtons';
+import { trackEvent } from '../lib/analytics';
 
 export default function Signup() {
   const [fullName, setFullName] = useState('');
@@ -19,6 +20,7 @@ export default function Signup() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    trackEvent('signup_started');
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');

@@ -1,8 +1,9 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, AlertCircle } from 'lucide-react';
 import Button from '../ui/Button';
 import { startPublicScan } from '../../lib/publicScan';
+import { trackEvent } from '../../lib/analytics';
 
 export default function PublicScanForm() {
   const [url, setUrl] = useState('');
@@ -10,13 +11,19 @@ export default function PublicScanForm() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    trackEvent('landing_view');
+  }, []);
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
     setLoading(true);
 
     try {
+      trackEvent('public_scan_started', { has_protocol: /^https?:\/\//i.test(url.trim()) });
       const result = await startPublicScan(url);
+      trackEvent('public_scan_completed', { status: result.status });
       navigate(`/report/${result.publicToken}`, {
         state: {
           status: result.status,
@@ -24,6 +31,7 @@ export default function PublicScanForm() {
         },
       });
     } catch (scanError) {
+      trackEvent('public_scan_failed');
       setError(scanError instanceof Error ? scanError.message : 'Unable to run scan. Try again in a minute.');
     } finally {
       setLoading(false);
