@@ -156,3 +156,17 @@ Verification:
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
+
+## Task 9 - V2 Scoring and Answer Tests
+
+Fixes applied:
+
+- Added `AIVOScoreV2` with documented category weights.
+- Added capped AI Answer Simulation prompt generation and DeepSeek-backed answer test execution.
+- Answer simulation returns at most two structured records and never claims to test ChatGPT.
+
+Verification:
+
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.

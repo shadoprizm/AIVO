@@ -66,6 +66,16 @@ export interface TechnicalScores {
   overall: number;
 }
 
+export interface AIVOScoreV2 {
+  crawl_access: number;        // 25% - deterministic crawl and robots/sitemap access.
+  entity_clarity: number;      // 20% - LLM analysis blended with schema/entity signals.
+  answer_readiness: number;    // 20% - LLM analysis of answerable structure.
+  citation_likelihood: number; // 15% - LLM analysis blended with answer simulations.
+  trust_evidence: number;      // 15% - deterministic trust, contact, and evidence signals.
+  competitive_presence: number;// 5% - answer simulation comparison signal.
+  overall: number;             // Weighted blend of the category scores above.
+}
+
 export interface Recommendation {
   title: string;
   severity: Severity;
