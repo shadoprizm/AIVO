@@ -5,6 +5,7 @@ import MarketingLayout from '../components/layouts/MarketingLayout';
 import SEOHead from '../components/shared/SEOHead';
 import Button from '../components/ui/Button';
 import { HeroSection } from '../components/hero';
+import PublicScanForm from '../components/scan/PublicScanForm';
 import { AnimatedSection, AnimatedCard, StaggerContainer, StaggerItem } from '../components/ui/AnimatedSection';
 import { SITE } from '../config/site';
 
@@ -115,7 +116,9 @@ export default function Home() {
 
       <article>
         {/* New animated hero section */}
-        <HeroSection />
+        <HeroSection>
+          <PublicScanForm />
+        </HeroSection>
 
         <section className="py-20 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

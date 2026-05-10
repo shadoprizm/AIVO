@@ -1,10 +1,15 @@
 import { motion } from 'framer-motion';
+import { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { NeuralNetworkBackground } from './NeuralNetworkBackground';
 import { GlowingCTAButton } from './GlowingCTAButton';
 import { ParticleField } from './ParticleField';
 
-export function HeroSection() {
+interface HeroSectionProps {
+  children?: ReactNode;
+}
+
+export function HeroSection({ children }: HeroSectionProps) {
   return (
     <section className="relative min-h-[90vh] flex items-center overflow-hidden pb-32">
       {/* Animated neural network background */}
@@ -67,6 +72,17 @@ export function HeroSection() {
               Get your <span className="text-blue-300 font-semibold">AIVO Score</span> and discover how AI assistants
               perceive your content. Stand out in the age of AI-powered search.
             </motion.p>
+
+            {children && (
+              <motion.div
+                className="mb-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.75 }}
+              >
+                {children}
+              </motion.div>
+            )}
 
             {/* CTA Buttons */}
             <motion.div

@@ -198,3 +198,17 @@ Verification:
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
+
+## Task 12 - Public Scan Form and Report Page
+
+Fixes applied:
+
+- Added public scan client wrapper and hero URL form.
+- Integrated the form into the existing hero.
+- Added `/report/:token` route with noindex meta handling, public report fetch, v2 scores, evidence, recommendations, answer simulations, copy-link sharing, and account CTA.
+
+Verification:
+
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.

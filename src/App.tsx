@@ -12,6 +12,7 @@ import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import SiteDetail from './pages/SiteDetail';
 import AdminBlog from './pages/AdminBlog';
+import PublicReport from './pages/PublicReport';
 import ProtectedRoute from './components/ProtectedRoute';
 import ScrollToTop from './components/ScrollToTop';
 
@@ -30,6 +31,7 @@ function App() {
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/report/:token" element={<PublicReport />} />
         <Route
           path="/dashboard"
           element={
