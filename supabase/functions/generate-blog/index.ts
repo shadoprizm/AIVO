@@ -705,9 +705,10 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl = requireEnv("SUPABASE_URL");
     const supabaseServiceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-    const openaiApiKey = requireEnv("OPENAI_API_KEY");
-    const openaiApiUrl = Deno.env.get("OPENAI_API_URL") ?? "https://api.openai.com/v1/chat/completions";
-    const openaiModel = Deno.env.get("OPENAI_MODEL") ?? "gpt-4o";
+    const deepseekApiKey = requireEnv("DEEPSEEK_API_KEY");
+    const deepseekBaseUrl = (Deno.env.get("DEEPSEEK_BASE_URL") ?? "https://api.deepseek.com/v1").replace(/\/$/, "");
+    const deepseekModel = Deno.env.get("DEEPSEEK_MODEL") ?? "deepseek-chat";
+    const deepseekApiUrl = `${deepseekBaseUrl}/chat/completions`;
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -824,14 +825,14 @@ Deno.serve(async (req: Request) => {
 
     const prompt = generatePromptForTopic(topic);
 
-    const openaiResponse = await fetch(openaiApiUrl, {
+    const deepseekResponse = await fetch(deepseekApiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiApiKey}`,
+        'Authorization': `Bearer ${deepseekApiKey}`,
       },
       body: JSON.stringify({
-        model: openaiModel,
+        model: deepseekModel,
         messages: [
           {
             role: 'user',
@@ -839,20 +840,20 @@ Deno.serve(async (req: Request) => {
           }
         ],
         temperature: 0.7,
-        max_tokens: 4000
+        max_tokens: 2000
       }),
     });
 
-    if (!openaiResponse.ok) {
-      const errorText = await openaiResponse.text();
-      throw new Error(`OpenAI API error: ${openaiResponse.status} - ${errorText}`);
+    if (!deepseekResponse.ok) {
+      const errorText = await deepseekResponse.text();
+      throw new Error(`DeepSeek API error: ${deepseekResponse.status} - ${errorText}`);
     }
 
-    const openaiData = await openaiResponse.json();
-    const rawContent = openaiData.choices?.[0]?.message?.content;
+    const deepseekData = await deepseekResponse.json();
+    const rawContent = deepseekData.choices?.[0]?.message?.content;
 
     if (!rawContent) {
-      throw new Error('No content generated from OpenAI API');
+      throw new Error('No content generated from DeepSeek API');
     }
 
     const content = ensureHtml(rawContent);

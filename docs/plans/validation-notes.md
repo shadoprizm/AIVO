@@ -96,3 +96,19 @@ Verification:
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
+
+## Task 5 - Migrate Blog Generation to DeepSeek V4
+
+Fixes applied:
+
+- Replaced blog generation OpenAI env/API usage with direct DeepSeek V4 `/chat/completions` fetch.
+- Switched required secrets to `DEEPSEEK_API_KEY`, `DEEPSEEK_BASE_URL`, and `DEEPSEEK_MODEL`.
+- Set blog generation temperature to `0.7` and `max_tokens` to `2000`.
+- Updated blog automation script documentation to reference DeepSeek V4.
+
+Verification:
+
+- `rg "OpenAI|OPENAI|openai|gpt-4o|api.openai" supabase/functions/generate-blog scripts src/pages/Dashboard.tsx`: no matches.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.

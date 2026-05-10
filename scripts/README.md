@@ -26,7 +26,7 @@ The automated blog system:
 - Runs every day at **10:00 AM UTC** (6 AM EST / 3 AM PST)
 - Generates one blog post per day
 - Rotates through 20 predefined topics
-- Uses OpenAI to generate content
+- Uses DeepSeek V4 to generate content
 - Fetches unique cover images from Pexels
 - Automatically publishes to your blog
 
