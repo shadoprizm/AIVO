@@ -335,3 +335,15 @@ Verification:
 - `npm run typecheck`: initially failed because `BriefcaseBusiness` is not exported by `lucide-react`; replaced it with `Briefcase`, then passed.
 - `npm run lint`: passed.
 - `npm run build`: passed. New landing pages prerendered successfully. Prerender still logs footer timeout warnings for `/login` and `/signup`.
+
+## Task 22 - QA Matrix
+
+Fixes applied:
+
+- Added free-first relaunch QA matrix covering public scan, report UX, authentication, claim flow, abuse controls, analytics, site files, and mobile checks.
+
+Verification:
+
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. Prerender still logs footer timeout warnings for `/login` and `/signup`.
