@@ -3,28 +3,11 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
+import { PRERENDER_ROUTES } from './seo-routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const distDir = path.resolve(__dirname, '../dist');
-
-const routes = [
-    '/',
-    '/free-ai-visibility-checker',
-    '/chatgpt-seo-checker',
-    '/ai-citation-checker',
-    '/llms-txt-checker',
-    '/ai-crawler-robots-txt-checker',
-    '/geo-audit-checklist',
-    '/sample-audits',
-    '/how-it-works',
-    '/faq',
-    '/blog',
-    '/privacy',
-    '/terms',
-    '/login',
-    '/signup'
-];
 
 function envFlag(name) {
     const value = process.env[name];
@@ -69,7 +52,7 @@ async function prerender() {
     }
 
     try {
-        for (const route of routes) {
+        for (const route of PRERENDER_ROUTES) {
             console.log(`Prerendering ${route}...`);
             const page = await browser.newPage();
 

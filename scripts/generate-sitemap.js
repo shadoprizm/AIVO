@@ -3,9 +3,10 @@ import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
+import { SITEMAP_STATIC_ROUTES } from './seo-routes.js';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables without noisy dotenv tips in build logs.
+dotenv.config({ quiet: true });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,66 +17,69 @@ const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 // Production fallback is intentionally centralized here for the Node sitemap build.
 const BASE_URL = (process.env.VITE_SITE_URL || 'https://aivoinsights.com').replace(/\/$/, '');
 
-const STATIC_ROUTES = [
-    { path: '/', changefreq: 'weekly', priority: '1.0' },
-    { path: '/free-ai-visibility-checker', changefreq: 'monthly', priority: '0.9' },
-    { path: '/chatgpt-seo-checker', changefreq: 'monthly', priority: '0.9' },
-    { path: '/ai-citation-checker', changefreq: 'monthly', priority: '0.9' },
-    { path: '/llms-txt-checker', changefreq: 'monthly', priority: '0.85' },
-    { path: '/ai-crawler-robots-txt-checker', changefreq: 'monthly', priority: '0.85' },
-    { path: '/geo-audit-checklist', changefreq: 'monthly', priority: '0.85' },
-    { path: '/sample-audits', changefreq: 'monthly', priority: '0.75' },
-    { path: '/how-it-works', changefreq: 'monthly', priority: '0.8' },
-    { path: '/faq', changefreq: 'monthly', priority: '0.7' },
-    { path: '/blog', changefreq: 'weekly', priority: '0.8' },
-    { path: '/privacy', changefreq: 'yearly', priority: '0.3' },
-    { path: '/terms', changefreq: 'yearly', priority: '0.3' },
-    { path: '/signup', changefreq: 'monthly', priority: '0.9' },
-    { path: '/login', changefreq: 'monthly', priority: '0.5' },
-];
+function escapeXml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+}
+
+function formatDate(value = new Date()) {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return new Date().toISOString().split('T')[0];
+    }
+    return date.toISOString().split('T')[0];
+}
+
+function normalizeSlug(slug) {
+    return String(slug ?? '').trim().replace(/^\/+|\/+$/g, '');
+}
+
+function urlEntry({ loc, lastmod, changefreq, priority }) {
+    return `  <url>
+    <loc>${escapeXml(loc)}</loc>
+    <lastmod>${escapeXml(lastmod)}</lastmod>
+    <changefreq>${escapeXml(changefreq)}</changefreq>
+    <priority>${escapeXml(priority)}</priority>
+  </url>`;
+}
 
 function buildSitemap(posts = []) {
     const uniquePosts = [];
     const seenSlugs = new Set();
     for (const post of posts) {
-        if (!post?.slug || seenSlugs.has(post.slug)) continue;
-        seenSlugs.add(post.slug);
-        uniquePosts.push(post);
+        const slug = normalizeSlug(post?.slug);
+        if (!slug || seenSlugs.has(slug)) continue;
+        seenSlugs.add(slug);
+        uniquePosts.push({ ...post, slug });
     }
 
-    let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+    const buildDate = formatDate();
+    const staticEntries = SITEMAP_STATIC_ROUTES.map(route => urlEntry({
+        loc: `${BASE_URL}${route.path}`,
+        lastmod: buildDate,
+        changefreq: route.changefreq,
+        priority: route.priority,
+    }));
+
+    const blogEntries = uniquePosts.map(post => {
+        const lastMod = post.updated_at || post.published_at || post.created_at || new Date().toISOString();
+        return urlEntry({
+            loc: `${BASE_URL}/blog/${encodeURIComponent(post.slug)}`,
+            lastmod: formatDate(lastMod),
+            changefreq: 'monthly',
+            priority: '0.7',
+        });
+    });
+
+    return `<?xml version="1.0" encoding="UTF-8"?>
 <!-- Absolute production URLs are required by the sitemap protocol and come from VITE_SITE_URL or the documented production fallback. -->
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
-        xmlns:xhtml="http://www.w3.org/1999/xhtml"
-        xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0"
-        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
-        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
-`;
-
-    STATIC_ROUTES.forEach(route => {
-        sitemap += `
-  <url>
-    <loc>${BASE_URL}${route.path}</loc>
-    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
-    <changefreq>${route.changefreq}</changefreq>
-    <priority>${route.priority}</priority>
-  </url>`;
-    });
-
-    uniquePosts.forEach(post => {
-        const lastMod = post.updated_at || post.published_at || new Date().toISOString();
-        sitemap += `
-  <url>
-    <loc>${BASE_URL}/blog/${post.slug}</loc>
-    <lastmod>${new Date(lastMod).toISOString().split('T')[0]}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>`;
-    });
-
-    sitemap += '\n</urlset>';
-    return sitemap;
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${[...staticEntries, ...blogEntries].join('\n')}
+</urlset>`;
 }
 
 function writeSitemap(sitemap) {
@@ -101,7 +105,7 @@ async function generateSitemap() {
         // Fetch blog posts
         const { data: posts, error } = await supabase
             .from('blog_posts')
-            .select('slug, updated_at, published_at')
+            .select('slug, updated_at, published_at, created_at')
             .eq('published', true)
             .order('published_at', { ascending: false });
 

@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "prebuild": "node scripts/generate-sitemap.js",
+    "prebuild": "npm run sitemap",
+    "sitemap": "node scripts/validate-seo-routes.js && node scripts/generate-sitemap.js",
     "dev": "vite",
     "build": "tsc && vite build && npm run prerender",
     "prerender": "node scripts/prerender.js",
