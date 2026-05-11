@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, ExternalLink, Calendar, BarChart3, Sparkles } from 'lucide-react';
+import { Plus, ExternalLink, Calendar, BarChart3, Sparkles, Trash2, Loader2 } from 'lucide-react';
 import DashboardLayout from '../components/layouts/DashboardLayout';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -17,6 +17,7 @@ export default function Dashboard() {
   const [siteUrl, setSiteUrl] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [deletingSiteId, setDeletingSiteId] = useState<string | null>(null);
   const [generatingBlog, setGeneratingBlog] = useState(false);
   const [blogMessage, setBlogMessage] = useState('');
   const [blogError, setBlogError] = useState('');
@@ -69,7 +70,7 @@ export default function Dashboard() {
 
       if (error) throw error;
 
-      setSites([data, ...sites]);
+      setSites((currentSites) => [data, ...currentSites]);
       setSiteName('');
       setSiteUrl('');
       setShowAddForm(false);
@@ -77,6 +78,42 @@ export default function Dashboard() {
       setError(err instanceof Error ? err.message : 'Failed to add site');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeleteSite = async (site: Site) => {
+    if (!user) {
+      setError('You must be logged in to delete a site');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete "${site.name}"? This will permanently delete this site and its saved scan history.`
+    );
+
+    if (!confirmed) return;
+
+    setError('');
+    setDeletingSiteId(site.id);
+
+    try {
+      const { count, error } = await supabase
+        .from('sites')
+        .delete({ count: 'exact' })
+        .eq('id', site.id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      if (count === 0) {
+        throw new Error('You can only delete sites that belong to your account.');
+      }
+
+      setSites((currentSites) => currentSites.filter((currentSite) => currentSite.id !== site.id));
+    } catch (err) {
+      console.error('Error deleting site:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete site');
+    } finally {
+      setDeletingSiteId(null);
     }
   };
 
@@ -178,15 +215,15 @@ export default function Dashboard() {
             {blogError}
           </div>
         )}
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            {error}
+          </div>
+        )}
 
         {showAddForm && (
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Add New Site</h2>
-            {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                {error}
-              </div>
-            )}
             <form onSubmit={handleAddSite} className="space-y-4">
               <Input
                 label="Site Name"
@@ -273,31 +310,52 @@ export default function Dashboard() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {sites.map((site) => (
-            <Link
+            <div
               key={site.id}
-              to={`/sites/${site.id}`}
-              className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition-all"
+              className="group relative bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition-all"
             >
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{site.name}</h3>
-                <a
-                  href={site.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                  onClick={(e) => e.stopPropagation()}
+              <Link
+                to={`/sites/${site.id}`}
+                className="absolute inset-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                aria-label={`View ${site.name} details`}
+              />
+              <div className="relative z-10 mb-4 flex items-start justify-between gap-3 pointer-events-none">
+                <div className="min-w-0">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-blue-700 transition-colors">
+                    {site.name}
+                  </h3>
+                  <a
+                    href={site.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="relative z-20 text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 break-all pointer-events-auto"
+                  >
+                    {site.url.replace(/^https?:\/\//, '')}
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                  </a>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteSite(site)}
+                  disabled={deletingSiteId === site.id}
+                  className="relative z-20 shrink-0 rounded-lg border border-red-200 p-2 text-red-600 hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400 disabled:hover:bg-transparent pointer-events-auto"
+                  aria-label={`Delete ${site.name}`}
+                  title="Delete site"
                 >
-                  {site.url.replace(/^https?:\/\//, '')}
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+                  {deletingSiteId === site.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                </button>
               </div>
-              <div className="border-t border-gray-100 pt-4 space-y-2">
+              <div className="relative z-10 border-t border-gray-100 pt-4 space-y-2 pointer-events-none">
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Calendar className="w-4 h-4" />
                   <span>Last scan: {formatDate(site.last_scanned_at)}</span>
                 </div>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}

@@ -9,12 +9,13 @@ import { SITE } from '../config/site';
 import { useAuth } from '../contexts/AuthContext';
 import { trackEvent } from '../lib/analytics';
 import AnswerTests from '../components/report/AnswerTests';
+import CustomerPrintReport from '../components/report/CustomerPrintReport';
 import Recommendations from '../components/report/Recommendations';
 import ReportHeader from '../components/report/ReportHeader';
 import ScoreSummary from '../components/report/ScoreSummary';
 import ShareActions from '../components/report/ShareActions';
 import TechnicalFindings from '../components/report/TechnicalFindings';
-import { ReportAnswerTest, ReportRecommendation, asNumber } from '../components/report/reportTypes';
+import { AIFixPrompt, CustomerSummary, ReportAnswerTest, ReportRecommendation, asNumber } from '../components/report/reportTypes';
 import ReportFeedback from '../components/report/ReportFeedback';
 
 interface ReportSite {
@@ -91,8 +92,16 @@ export default function PublicReport() {
   const technicalEvidence = useMemo(() => asRecord(technical.evidence), [technical]);
   const recommendations = useMemo(() => asArray<ReportRecommendation>(report?.recommendations), [report]);
   const answerTests = useMemo(() => asArray<ReportAnswerTest>(report?.answerTests), [report]);
+  const aiFixPromptMarkdown = typeof evidence.ai_fix_prompt_markdown === 'string' ? evidence.ai_fix_prompt_markdown : undefined;
+  const aiFixPromptStructured = evidence.ai_fix_prompt_structured && typeof evidence.ai_fix_prompt_structured === 'object'
+    ? evidence.ai_fix_prompt_structured as AIFixPrompt
+    : undefined;
+  const customerSummary = evidence.customer_summary && typeof evidence.customer_summary === 'object'
+    ? evidence.customer_summary as CustomerSummary
+    : undefined;
   const site = report?.site as ReportSite | null | undefined;
   const overall = asNumber(score.overall) ?? asNumber(report?.overall_score) ?? 0;
+  const scanDate = typeof report?.createdAt === 'string' ? report.createdAt : undefined;
   const status = typeof report?.status === 'string' ? report.status : 'partial';
   const visibility = typeof report?.visibility === 'string' ? report.visibility : 'unlisted';
 
@@ -166,50 +175,67 @@ export default function PublicReport() {
         )}
 
         {!loading && report && (
-          <div className="space-y-8">
-            <ReportHeader
+          <>
+            <div className="space-y-8 print:hidden">
+              <ReportHeader
+                siteName={site?.name ?? 'Public Scan Report'}
+                siteUrl={site?.url}
+                scanDate={scanDate}
+                status={status}
+                overallScore={overall}
+              />
+              <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                <ShareActions
+                  reportUrl={window.location.href}
+                  siteUrl={site?.url}
+                  overallScore={overall}
+                  scanDate={scanDate}
+                  recommendations={recommendations}
+                  aiFixPromptMarkdown={aiFixPromptMarkdown}
+                  aiFixPromptStructured={aiFixPromptStructured}
+                  onAction={(action) => {
+                    setError('');
+                    if (action === 'link') trackEvent('report_shared');
+                    if (action === 'customer_pdf') trackEvent('customer_pdf_exported');
+                    if (action === 'checklist') trackEvent('checklist_copied');
+                    if (action === 'ai_prompt_md') trackEvent('ai_prompt_downloaded', { format: 'markdown' });
+                    if (action === 'ai_prompt_json') trackEvent('ai_prompt_downloaded', { format: 'json' });
+                    if (action === 'recommendations_json') trackEvent('recommendations_downloaded');
+                  }}
+                />
+                {(claiming || claimMessage) && (
+                  <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+                    {claiming ? 'Saving this report to your account...' : claimMessage}
+                  </div>
+                )}
+              </section>
+
+              <ScoreSummary score={score} />
+              <TechnicalFindings evidence={technicalEvidence} />
+              <Recommendations recommendations={recommendations} />
+              <AnswerTests tests={answerTests} />
+              {token && <ReportFeedback publicToken={token} />}
+
+              {!user && (
+                <section className="rounded-lg border border-blue-200 bg-blue-50 p-6 text-center">
+                  <h2 className="text-2xl font-bold text-gray-900">Save this report</h2>
+                  <p className="mt-2 text-gray-700">Create free account to save this scan and track improvements.</p>
+                  <Link to={`/signup?redirect=/report/${token ?? ''}`} className="mt-4 inline-block" onClick={rememberReportRedirect}>
+                    <Button>Create free account to save this scan</Button>
+                  </Link>
+                </section>
+              )}
+            </div>
+
+            <CustomerPrintReport
               siteName={site?.name ?? 'Public Scan Report'}
               siteUrl={site?.url}
-              scanDate={typeof report.createdAt === 'string' ? report.createdAt : undefined}
-              status={status}
+              scanDate={scanDate}
               overallScore={overall}
+              customerSummary={customerSummary}
+              recommendations={recommendations}
             />
-            <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-              <ShareActions
-                reportUrl={window.location.href}
-                recommendations={recommendations}
-                evidence={evidence}
-                onAction={(action) => {
-                  setError('');
-                  if (action === 'link') trackEvent('report_shared');
-                  if (action === 'print') trackEvent('pdf_exported');
-                  if (action === 'checklist') trackEvent('checklist_copied');
-                  if (action === 'brief') trackEvent('content_brief_copied');
-                }}
-              />
-              {(claiming || claimMessage) && (
-                <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-                  {claiming ? 'Saving this report to your account...' : claimMessage}
-                </div>
-              )}
-            </section>
-
-            <ScoreSummary score={score} />
-            <TechnicalFindings evidence={technicalEvidence} />
-            <Recommendations recommendations={recommendations} />
-            <AnswerTests tests={answerTests} />
-            {token && <ReportFeedback publicToken={token} />}
-
-            {!user && (
-              <section className="rounded-lg border border-blue-200 bg-blue-50 p-6 text-center">
-                <h2 className="text-2xl font-bold text-gray-900">Save this report</h2>
-                <p className="mt-2 text-gray-700">Create free account to save this scan and track improvements.</p>
-                <Link to={`/signup?redirect=/report/${token ?? ''}`} className="mt-4 inline-block" onClick={rememberReportRedirect}>
-                  <Button>Create free account to save this scan</Button>
-                </Link>
-              </section>
-            )}
-          </div>
+          </>
         )}
       </main>
     </MarketingLayout>

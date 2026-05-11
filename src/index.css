@@ -168,3 +168,247 @@
     margin: 1.5rem 0;
   }
 }
+
+@media print {
+  @page {
+    margin: 18mm 16mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #1f2937 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .customer-print-report {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #1f2937;
+    line-height: 1.55;
+    max-width: 100%;
+  }
+
+  .customer-print-cover {
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 24pt;
+    margin-bottom: 24pt;
+    page-break-after: avoid;
+  }
+
+  .customer-print-brand {
+    font-size: 11pt;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #2563eb;
+    margin-bottom: 8pt;
+  }
+
+  .customer-print-title {
+    font-size: 28pt;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 16pt 0;
+    line-height: 1.15;
+  }
+
+  .customer-print-meta {
+    font-size: 10.5pt;
+    color: #4b5563;
+    margin-bottom: 18pt;
+  }
+
+  .customer-print-meta > div {
+    margin-bottom: 3pt;
+  }
+
+  .customer-print-score-block {
+    display: flex;
+    align-items: baseline;
+    gap: 12pt;
+    margin: 16pt 0 14pt 0;
+  }
+
+  .customer-print-score {
+    font-size: 56pt;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .customer-print-score-out-of {
+    font-size: 11pt;
+    color: #6b7280;
+  }
+
+  .customer-print-score-band {
+    font-size: 13pt;
+    font-weight: 700;
+    margin-left: auto;
+    padding: 4pt 10pt;
+    border-radius: 999pt;
+    border: 1pt solid currentColor;
+  }
+
+  .customer-print-headline {
+    font-size: 14pt;
+    font-weight: 600;
+    color: #0f172a;
+    margin: 12pt 0 8pt 0;
+  }
+
+  .customer-print-interpretation {
+    font-size: 11pt;
+    color: #374151;
+    margin: 0;
+  }
+
+  .customer-print-section {
+    margin-top: 20pt;
+  }
+
+  .customer-print-section-title {
+    font-size: 16pt;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 12pt 0;
+    border-bottom: 1pt solid #e5e7eb;
+    padding-bottom: 6pt;
+    page-break-after: avoid;
+  }
+
+  .customer-print-empty {
+    font-size: 11pt;
+    color: #4b5563;
+    font-style: italic;
+  }
+
+  .customer-print-issues {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .customer-print-issue {
+    border: 1pt solid #e5e7eb;
+    border-left-width: 4pt;
+    border-radius: 6pt;
+    padding: 12pt 14pt;
+    margin-bottom: 12pt;
+    page-break-inside: avoid;
+    background: #f9fafb;
+  }
+
+  .customer-print-issue-high {
+    border-left-color: #dc2626;
+  }
+
+  .customer-print-issue-medium {
+    border-left-color: #d97706;
+  }
+
+  .customer-print-issue-low {
+    border-left-color: #2563eb;
+  }
+
+  .customer-print-issue-header {
+    display: flex;
+    align-items: center;
+    gap: 8pt;
+    margin-bottom: 8pt;
+  }
+
+  .customer-print-issue-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22pt;
+    height: 22pt;
+    border-radius: 999pt;
+    background: #0f172a;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 11pt;
+  }
+
+  .customer-print-issue-title {
+    font-size: 13pt;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+    flex: 1;
+  }
+
+  .customer-print-severity {
+    font-size: 9pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2pt 8pt;
+    border-radius: 999pt;
+  }
+
+  .customer-print-severity-high {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .customer-print-severity-medium {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .customer-print-severity-low {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
+  .customer-print-issue-block {
+    margin-top: 8pt;
+  }
+
+  .customer-print-issue-label {
+    font-size: 9.5pt;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 3pt;
+  }
+
+  .customer-print-issue-block p {
+    font-size: 11pt;
+    color: #1f2937;
+    margin: 0;
+  }
+
+  .customer-print-cta {
+    margin-top: 24pt;
+    padding: 16pt;
+    border-radius: 8pt;
+    background: #eff6ff;
+    border: 1pt solid #bfdbfe;
+    page-break-inside: avoid;
+  }
+
+  .customer-print-cta p {
+    font-size: 11pt;
+    margin: 6pt 0 0 0;
+  }
+
+  .customer-print-cta-contact {
+    font-size: 10pt !important;
+    color: #4b5563;
+    margin-top: 8pt !important;
+  }
+
+  .customer-print-footer {
+    margin-top: 24pt;
+    padding-top: 10pt;
+    border-top: 1pt solid #e5e7eb;
+    font-size: 9pt;
+    color: #9ca3af;
+    text-align: center;
+  }
+}
+

@@ -9,11 +9,15 @@ interface MarketingLayoutProps {
 export default function MarketingLayout({ children }: MarketingLayoutProps) {
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
+      <div className="print:hidden">
+        <Header />
+      </div>
       <main className="flex-grow">
         {children}
       </main>
-      <Footer />
+      <div className="print:hidden">
+        <Footer />
+      </div>
     </div>
   );
 }

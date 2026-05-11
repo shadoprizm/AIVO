@@ -21,7 +21,29 @@ Rules:
 - If FAQ schema is detected, NEVER recommend adding FAQ
 - If schema.org is present, name specific missing types
 - Every recommendation must include title severity evidence why_it_matters exact_fix effort_estimate owner expected_impact
-- Return strict JSON. No markdown. No explanations outside JSON.`;
+- Return strict JSON. No markdown. No explanations outside JSON.
+
+You must also produce three additional fields alongside the recommendations: ai_fix_prompt_markdown, ai_fix_prompt_structured, and customer_summary.
+
+ai_fix_prompt_markdown rules:
+- A complete, ready-to-paste prompt for an AI coding agent (Claude Code, Cursor, GitHub Copilot)
+- Starts with a short context block: site URL, overall score, scan date
+- Lists every recommendation in priority order (high severity first) as numbered sections with: evidence, exact_fix, files or locations to edit, and a verification step
+- Ends with a single closing instruction asking the agent to re-run the AIVO scan and confirm the overall score has improved
+- Plain markdown, no HTML, no surrounding code fences
+
+ai_fix_prompt_structured rules:
+- Same content as ai_fix_prompt_markdown but as structured JSON for programmatic consumption
+- issues array entries: priority (1-based), severity, title, files_or_locations (string array of file paths or page locations like "<head> of /faq"), exact_change (a copy of exact_fix expressed as a code or content edit), verification (one-line check the agent can run after applying the change)
+
+customer_summary rules:
+- Written for a non-technical small business owner. NO jargon.
+- Forbidden words: schema, JSON-LD, canonical, robots.txt, sitemap, meta tag, h1, hreflang, llms.txt, structured markup
+- Allowed replacements: "structured data" (for schema/JSON-LD), "preferred page version" (for canonical), "crawler instructions" (for robots.txt), "search index map" (for sitemap), "page description" (for meta description)
+- headline: one sentence describing where the site stands overall
+- score_interpretation: one or two sentences explaining what the overall score means in business terms
+- issues: one entry per recommendation in the same order (recommendation_index is the 0-based index into the recommendations array). business_impact must answer "how does this cost me customers". what_we_recommend must be a plain-language description of the fix.
+- closing_call_to_action: one sentence offering to implement the fixes`;
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -73,7 +95,7 @@ function buildMessages(scanData: ScanInput): ChatMessage[] {
     {
       role: 'user',
       content: JSON.stringify({
-        instruction: 'Analyze this crawl and return JSON with scores, summary, and evidence-backed recommendations.',
+        instruction: 'Analyze this crawl and return JSON with scores, summary, evidence-backed recommendations, an AI agent fix prompt (markdown + structured), and a plain-language customer summary.',
         required_shape: {
           scores: {
             crawl_access: 'number',
@@ -97,6 +119,36 @@ function buildMessages(scanData: ScanInput): ChatMessage[] {
               expected_impact: 'string',
             },
           ],
+          ai_fix_prompt_markdown: 'string (complete markdown prompt for an AI coding agent)',
+          ai_fix_prompt_structured: {
+            site_url: 'string',
+            overall_score: 'number',
+            scan_date: 'string (ISO date)',
+            issues: [
+              {
+                priority: 'number (1-based)',
+                severity: 'high | medium | low',
+                title: 'string',
+                files_or_locations: ['string'],
+                exact_change: 'string',
+                verification: 'string',
+              },
+            ],
+            post_fix_action: 'string',
+          },
+          customer_summary: {
+            headline: 'string',
+            score_interpretation: 'string',
+            issues: [
+              {
+                recommendation_index: 'number (0-based index into recommendations)',
+                title: 'string (plain-language, no jargon)',
+                business_impact: 'string (plain-language, no jargon)',
+                what_we_recommend: 'string (plain-language, no jargon)',
+              },
+            ],
+            closing_call_to_action: 'string',
+          },
         },
         crawl_data: scanData.site,
         technical_checks: scanData.technical,
@@ -125,7 +177,7 @@ async function postDeepSeek(messages: ChatMessage[], timeoutMs: number): Promise
         messages,
         temperature: 0.1,
         response_format: { type: 'json_object' },
-        max_tokens: 4000,
+        max_tokens: 8000,
       }),
     });
   } finally {

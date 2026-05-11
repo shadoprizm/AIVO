@@ -235,6 +235,9 @@ Deno.serve(async (req: Request) => {
       technical,
       recommendations: analysis.recommendations,
       answer_tests: answerTests,
+      ai_fix_prompt_markdown: analysis.ai_fix_prompt_markdown,
+      ai_fix_prompt_structured: analysis.ai_fix_prompt_structured,
+      customer_summary: analysis.customer_summary,
     };
 
     const { error: updateError } = await supabase
