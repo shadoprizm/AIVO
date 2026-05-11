@@ -1,5 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { analyzeWithDeepSeek, getDeepSeekTimeoutMs } from '../_shared/deepseek-analyzer.ts';
 import { runAnswerSimulations } from '../_shared/answer-tests.ts';
 import { discoverSite } from '../_shared/site-discovery.ts';
@@ -56,6 +57,39 @@ async function hmacSha256(secret: string, value: string): Promise<string> {
     ['sign']
   );
   return toHex(await crypto.subtle.sign('HMAC', key, encoder.encode(value)));
+}
+
+async function hasActivePublicScanBlock(
+  supabase: SupabaseClient,
+  domain: string,
+  requestIpHash: string,
+  userAgentHash: string
+): Promise<boolean> {
+  const now = new Date().toISOString();
+
+  for (const [field, value] of [
+    ['domain', domain],
+    ['request_ip_hash', requestIpHash],
+    ['user_agent_hash', userAgentHash],
+  ] as const) {
+    const { data, error } = await supabase
+      .from('admin_abuse_blocks')
+      .select('id')
+      .eq('active', true)
+      .eq(field, value)
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
+      .limit(1);
+
+    if (error) {
+      throw new Error('Unable to verify scan access');
+    }
+
+    if (data?.length) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function createPublicToken(): string {
@@ -152,6 +186,10 @@ Deno.serve(async (req: Request) => {
     const ipHash = await hmacSha256(hashSecret, ip);
     const userAgentHash = await hmacSha256(hashSecret, userAgent);
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    if (await hasActivePublicScanBlock(supabase, domain, ipHash, userAgentHash)) {
+      return jsonResponse({ error: 'This scan request is blocked.' }, 403);
+    }
 
     const { count: ipCount, error: ipLimitError } = await supabase
       .from('scans')

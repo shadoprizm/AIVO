@@ -21,6 +21,7 @@ export const APP_ROUTES_EXCLUDED_FROM_SITEMAP = [
     { path: '/report/:token', reason: 'Public report token URLs are noindex and should not be submitted.' },
     { path: '/dashboard', reason: 'Authenticated dashboard route.' },
     { path: '/sites/:siteId', reason: 'Authenticated site detail route.' },
+    { path: '/admin', reason: 'Authenticated admin route.' },
     { path: '/admin/blog', reason: 'Authenticated admin route.' },
 ];
 

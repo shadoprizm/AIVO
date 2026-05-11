@@ -3,9 +3,9 @@ import { BookOpenCheck, Eye, EyeOff, ImageIcon, Loader2, RefreshCw, Save, Trash2
 import DashboardLayout from '../components/layouts/DashboardLayout';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
-import { supabase } from '../lib/supabase';
 import { BlogPost } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
+import { adminApi } from '../lib/admin';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
@@ -91,17 +91,15 @@ export default function AdminBlog() {
 
   const fetchPosts = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('blog_posts')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
+    try {
+      const result = await adminApi.listBlogPosts();
+      setPosts(result.posts || []);
+    } catch (error) {
       console.error('Failed to fetch posts:', error);
-    } else {
-      setPosts(data || []);
+      setFormError(error instanceof Error ? error.message : 'Failed to fetch posts');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleCreateNew = () => {
@@ -165,28 +163,15 @@ export default function AdminBlog() {
 
     try {
       if (editingPost) {
-        const { data, error } = await supabase
-          .from('blog_posts')
-          .update({
-            ...payload,
-            published_at: form.published
-              ? editingPost.published_at || new Date().toISOString()
-              : null,
-          })
-          .eq('id', editingPost.id)
-          .select()
-          .single();
-
-        if (error) throw error;
+        const { post: data } = await adminApi.saveBlogPost({
+          ...payload,
+          published_at: form.published
+            ? editingPost.published_at || new Date().toISOString()
+            : null,
+        }, editingPost.id);
         setStatusMessage(`Updated "${data.title}"`);
       } else {
-        const { data, error } = await supabase
-          .from('blog_posts')
-          .insert(payload)
-          .select()
-          .single();
-
-        if (error) throw error;
+        const { post: data } = await adminApi.saveBlogPost(payload);
         setStatusMessage(`Created "${data.title}"`);
         setEditingPost(data);
         setSlugLocked(true);
@@ -203,8 +188,10 @@ export default function AdminBlog() {
 
   const handleDelete = async (post: BlogPost) => {
     if (!confirm(`Delete post "${post.title}"?`)) return;
+    const reason = window.prompt('Reason for deleting this post?');
+    if (!reason?.trim()) return;
     try {
-      await supabase.from('blog_posts').delete().eq('id', post.id);
+      await adminApi.deleteBlogPost(post.id, reason.trim());
       setStatusMessage(`Deleted "${post.title}"`);
       await fetchPosts();
     } catch (error) {
@@ -216,13 +203,7 @@ export default function AdminBlog() {
   const togglePublish = async (post: BlogPost) => {
     try {
       const nextPublished = !post.published;
-      await supabase
-        .from('blog_posts')
-        .update({
-          published: nextPublished,
-          published_at: nextPublished ? new Date().toISOString() : null,
-        })
-        .eq('id', post.id);
+      await adminApi.toggleBlogPost(post.id, nextPublished);
       await fetchPosts();
       setStatusMessage(`${nextPublished ? 'Published' : 'Unpublished'} "${post.title}"`);
     } catch (error) {

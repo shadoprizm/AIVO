@@ -20,12 +20,13 @@ DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
 DEEPSEEK_MODEL=deepseek-chat
 SCAN_HASH_SECRET=
 SUPABASE_SERVICE_ROLE_KEY=
+ADMIN_EMAILS=
 ```
 
 ## Supabase Configuration
 
 - [ ] Apply all migrations in `supabase/migrations`.
-- [ ] Deploy Edge Functions: `public-scan`, `public-report`, `claim-scan`, `scan-feedback`, `run-scan`, and `generate-blog`.
+- [ ] Deploy Edge Functions: `public-scan`, `public-report`, `claim-scan`, `scan-feedback`, `run-scan`, `generate-blog`, and `admin-control`.
 - [ ] Enable Google provider in Supabase Dashboard -> Authentication -> Providers.
 - [ ] Enable GitHub provider in Supabase Dashboard -> Authentication -> Providers.
 - [ ] Configure production redirect URL: `https://aivoinsights.com/dashboard`.

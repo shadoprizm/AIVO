@@ -1,5 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { fetchWithTimeout } from '../_shared/fetch.ts';
 import { isPrivateIp, isValidUrl, normalizeUrl } from '../_shared/url.ts';
 
@@ -247,6 +248,35 @@ async function hostnameResolvesToPrivate(hostname: string): Promise<boolean> {
   }
 }
 
+async function isUserBlockedFromScans(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<boolean> {
+  const now = new Date().toISOString();
+  const [{ data: moderation, error: moderationError }, { data: abuseBlock, error: abuseBlockError }] = await Promise.all([
+    supabase
+      .from('user_moderation')
+      .select('user_id')
+      .eq('user_id', userId)
+      .eq('status', 'suspended')
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
+      .limit(1),
+    supabase
+      .from('admin_abuse_blocks')
+      .select('id')
+      .eq('active', true)
+      .eq('user_id', userId)
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
+      .limit(1),
+  ]);
+
+  if (moderationError || abuseBlockError) {
+    throw new Error('Unable to verify account access');
+  }
+
+  return Boolean(moderation?.length || abuseBlock?.length);
+}
+
 async function callDeepSeek(messages: ChatMessage[], timeoutMs: number): Promise<string | null> {
   const apiKey = Deno.env.get('DEEPSEEK_API_KEY');
   const baseUrl = (Deno.env.get('DEEPSEEK_BASE_URL') || 'https://api.deepseek.com/v1').replace(/\/$/, '');
@@ -320,6 +350,10 @@ Deno.serve(async (req: Request) => {
       throw new Error('Unauthorized');
     }
 
+    if (await isUserBlockedFromScans(supabase, user.id)) {
+      throw new Error('Account suspended');
+    }
+
     const { siteId }: RequestBody = await req.json();
 
     if (!siteId) {
@@ -360,6 +394,8 @@ Deno.serve(async (req: Request) => {
       .from('scans')
       .insert({
         site_id: siteId,
+        user_id: user.id,
+        source: 'dashboard',
         status: 'processing',
       })
       .select()

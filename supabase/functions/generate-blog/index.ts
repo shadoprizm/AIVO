@@ -578,29 +578,32 @@ async function fetchCoverImage(topic: BlogTopic, supabase: SupabaseClient): Prom
       continue;
     }
 
-    // Filter out already used images
-    const unusedPhotos = photos.filter((photo) => {
-      const imageUrl = photo.src?.large2x ?? photo.src?.large ?? photo.src?.original;
-      return !usedUrls.has(imageUrl);
-    });
+    // Filter out already used images and malformed Pexels results.
+    const unusedPhotos = photos
+      .map((photo) => ({
+        photo,
+        imageUrl: photo.src?.large2x ?? photo.src?.large ?? photo.src?.original,
+      }))
+      .filter((item): item is { photo: PexelsPhoto; imageUrl: string } =>
+        typeof item.imageUrl === 'string' && !usedUrls.has(item.imageUrl)
+      );
 
     if (unusedPhotos.length > 0) {
       const chosen = unusedPhotos[Math.floor(Math.random() * unusedPhotos.length)];
-      const imageUrl = chosen.src?.large2x ?? chosen.src?.large ?? chosen.src?.original;
 
       // Mark this image as used
       await supabase
         .from('used_blog_images')
         .insert({
-          image_url: imageUrl,
-          photographer: chosen.photographer,
-          photographer_url: chosen.photographer_url,
+          image_url: chosen.imageUrl,
+          photographer: chosen.photo.photographer,
+          photographer_url: chosen.photo.photographer_url,
         });
 
       return {
-        url: imageUrl,
-        author: chosen.photographer,
-        authorUrl: chosen.photographer_url,
+        url: chosen.imageUrl,
+        author: chosen.photo.photographer,
+        authorUrl: chosen.photo.photographer_url,
         source: "Pexels",
       };
     }
@@ -642,11 +645,9 @@ function ensureHtml(content: string): string {
   marked.setOptions({
     gfm: true,
     breaks: true,
-    mangle: false,
-    headerIds: false,
   });
 
-  return marked.parse(trimmed);
+  return marked.parse(trimmed, { async: false }) as string;
 }
 
 async function getLatestPostAndCleanupDuplicates(
@@ -727,11 +728,13 @@ Deno.serve(async (req: Request) => {
       throw new Error("Unauthorized");
     }
 
-    if (adminEmails.length > 0) {
-      const email = user.email?.toLowerCase();
-      if (!email || !adminEmails.includes(email)) {
-        throw new Error("Only administrators can generate blog posts");
-      }
+    if (adminEmails.length === 0) {
+      throw new Error("Admin access is not configured");
+    }
+
+    const email = user.email?.toLowerCase();
+    if (!email || !adminEmails.includes(email)) {
+      throw new Error("Only administrators can generate blog posts");
     }
 
     // Get or create state row
@@ -919,10 +922,11 @@ Deno.serve(async (req: Request) => {
     );
   } catch (error) {
     console.error('Error generating blog:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: message,
       }),
       {
         status: 500,

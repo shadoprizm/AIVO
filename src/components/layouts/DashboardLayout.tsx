@@ -41,9 +41,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <span>Blog</span>
               </Link>
               {isAdmin && (
-                <Link to="/admin/blog" className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors">
+                <Link to="/admin" className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors">
                   <ShieldCheck className="w-4 h-4" />
-                  <span>Blog Admin</span>
+                  <span>Admin</span>
                 </Link>
               )}
               <div className="flex items-center gap-3">

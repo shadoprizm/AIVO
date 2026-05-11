@@ -12,6 +12,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import SiteDetail from './pages/SiteDetail';
+import AdminPanel from './pages/AdminPanel';
 import AdminBlog from './pages/AdminBlog';
 import PublicReport from './pages/PublicReport';
 import {
@@ -74,6 +75,14 @@ function App() {
           element={
             <ProtectedRoute>
               <SiteDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute requireAdmin>
+              <AdminPanel />
             </ProtectedRoute>
           }
         />

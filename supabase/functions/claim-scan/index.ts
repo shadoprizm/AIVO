@@ -1,5 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,6 +26,35 @@ function jsonResponse(body: Record<string, unknown>, status = 200): Response {
       'Content-Type': 'application/json',
     },
   });
+}
+
+async function isUserBlockedFromClaims(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<boolean> {
+  const now = new Date().toISOString();
+  const [{ data: moderation, error: moderationError }, { data: abuseBlock, error: abuseBlockError }] = await Promise.all([
+    supabase
+      .from('user_moderation')
+      .select('user_id')
+      .eq('user_id', userId)
+      .eq('status', 'suspended')
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
+      .limit(1),
+    supabase
+      .from('admin_abuse_blocks')
+      .select('id')
+      .eq('active', true)
+      .eq('user_id', userId)
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
+      .limit(1),
+  ]);
+
+  if (moderationError || abuseBlockError) {
+    throw new Error('Unable to verify account access');
+  }
+
+  return Boolean(moderation?.length || abuseBlock?.length);
 }
 
 Deno.serve(async (req: Request) => {
@@ -60,6 +90,10 @@ Deno.serve(async (req: Request) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
       return jsonResponse({ error: 'Authentication required' }, 401);
+    }
+
+    if (await isUserBlockedFromClaims(supabase, user.id)) {
+      return jsonResponse({ error: 'Account suspended' }, 403);
     }
 
     const { data, error } = await supabase
