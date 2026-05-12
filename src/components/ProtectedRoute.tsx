@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { rememberPostAuthRedirect } from '../lib/authRedirect';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -9,6 +10,7 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
   const { user, loading, isAdmin } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -22,7 +24,8 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    const redirectPath = rememberPostAuthRedirect(`${location.pathname}${location.search}`);
+    return <Navigate to={`/login?redirect=${encodeURIComponent(redirectPath)}`} replace />;
   }
 
   if (requireAdmin && !isAdmin) {

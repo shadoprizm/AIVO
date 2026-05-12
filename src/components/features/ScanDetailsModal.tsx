@@ -18,6 +18,22 @@ interface ScanDetailsModalProps {
   onClose: () => void;
 }
 
+function createPdfSourceElement(html: string): HTMLDivElement {
+  const parsed = new DOMParser().parseFromString(html, 'text/html');
+  const source = document.createElement('div');
+  source.style.background = '#ffffff';
+
+  parsed.head.querySelectorAll('style').forEach((style) => {
+    source.appendChild(document.importNode(style, true));
+  });
+
+  parsed.body.childNodes.forEach((node) => {
+    source.appendChild(document.importNode(node, true));
+  });
+
+  return source;
+}
+
 const categoryIcons: Record<keyof CategoryScores, typeof FileText> = {
   content_clarity: FileText,
   semantic_structure: Layout,
@@ -37,13 +53,10 @@ export default function ScanDetailsModal({ scan, siteName, siteUrl, onClose }: S
     setGeneratingPdf(true);
     try {
       const html = generateReportHTML({ scan, siteName, siteUrl });
-      const container = document.createElement('div');
-      container.innerHTML = html;
-      container.style.position = 'fixed';
-      container.style.left = '-10000px';
-      container.style.top = '0';
-      container.style.width = '800px';
-      document.body.appendChild(container);
+      if (!html.trim()) {
+        throw new Error('Report HTML was empty.');
+      }
+      const pdfSource = createPdfSourceElement(html);
 
       const { default: html2pdf } = await import('html2pdf.js');
       await html2pdf()
@@ -51,13 +64,11 @@ export default function ScanDetailsModal({ scan, siteName, siteUrl, onClose }: S
           margin: 10,
           filename: `${filenameBase}.pdf`,
           image: { type: 'jpeg', quality: 0.95 },
-          html2canvas: { scale: 2, useCORS: true },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         })
-        .from(container)
+        .from(pdfSource)
         .save();
-
-      document.body.removeChild(container);
     } catch (err) {
       console.error('PDF generation failed:', err);
       alert('Failed to generate PDF. Please try again.');

@@ -5,6 +5,7 @@ import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
 import OAuthButtons from '../components/auth/OAuthButtons';
+import { clearPostAuthRedirect, getAuthRedirectPath } from '../lib/authRedirect';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -21,11 +22,9 @@ export default function Login() {
 
     try {
       await login(email, password);
-      const redirectPath = new URLSearchParams(window.location.search).get('redirect')
-        || sessionStorage.getItem('aivo-post-auth-redirect')
-        || '/dashboard';
-      sessionStorage.removeItem('aivo-post-auth-redirect');
-      navigate(redirectPath.startsWith('/') ? redirectPath : '/dashboard');
+      const redirectPath = getAuthRedirectPath();
+      clearPostAuthRedirect();
+      navigate(redirectPath);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in');
     } finally {

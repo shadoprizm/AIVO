@@ -6,6 +6,7 @@ import Button from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
 import OAuthButtons from '../components/auth/OAuthButtons';
 import { trackEvent } from '../lib/analytics';
+import { clearPostAuthRedirect, getAuthRedirectPath } from '../lib/authRedirect';
 
 export default function Signup() {
   const [fullName, setFullName] = useState('');
@@ -36,11 +37,9 @@ export default function Signup() {
 
     try {
       await signup(email, password, fullName);
-      const redirectPath = new URLSearchParams(window.location.search).get('redirect')
-        || sessionStorage.getItem('aivo-post-auth-redirect')
-        || '/dashboard';
-      sessionStorage.removeItem('aivo-post-auth-redirect');
-      navigate(redirectPath.startsWith('/') ? redirectPath : '/dashboard');
+      const redirectPath = getAuthRedirectPath();
+      clearPostAuthRedirect();
+      navigate(redirectPath);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create account');
     } finally {

@@ -27,10 +27,11 @@ ADMIN_EMAILS=
 
 - [ ] Apply all migrations in `supabase/migrations`.
 - [ ] Deploy Edge Functions: `public-scan`, `public-report`, `claim-scan`, `scan-feedback`, `run-scan`, `generate-blog`, and `admin-control`.
-- [ ] Enable Google provider in Supabase Dashboard -> Authentication -> Providers.
-- [ ] Enable GitHub provider in Supabase Dashboard -> Authentication -> Providers.
-- [ ] Configure production redirect URL: `https://aivoinsights.com/dashboard`.
-- [ ] Configure local redirect URL: `http://localhost:5173/dashboard`.
+- [ ] In Supabase Dashboard -> Authentication -> URL Configuration, set Site URL to `https://aivoinsights.com`.
+- [ ] Add production redirect URLs in Supabase URL Configuration: `https://aivoinsights.com/dashboard`, `https://aivoinsights.com/report/**`, `https://aivoinsights.com/sites/**`, `https://aivoinsights.com/admin`, and `https://aivoinsights.com/admin/**`.
+- [ ] Add local redirect URL in Supabase URL Configuration: `http://localhost:5173/**`.
+- [ ] Create a Google OAuth client with authorized redirect URI `https://<project-ref>.supabase.co/auth/v1/callback`, then enable Google in Supabase Dashboard -> Authentication -> Providers with that client ID and secret.
+- [ ] Create a GitHub OAuth app with authorization callback URL `https://<project-ref>.supabase.co/auth/v1/callback`, then enable GitHub in Supabase Dashboard -> Authentication -> Providers with that client ID and secret.
 - [ ] Confirm public report lookup uses service-role token lookup only.
 - [ ] Confirm anonymous feedback has no public listing endpoint.
 

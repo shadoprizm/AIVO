@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { trackEvent } from '../lib/analytics';
+import { clearPostAuthRedirect, getPostAuthRedirectUrl } from '../lib/authRedirect';
 
 interface AuthResult {
   user: User | null;
@@ -27,11 +28,6 @@ const adminEmails = String(import.meta.env.VITE_ADMIN_EMAILS || '')
   .map((email: string) => email.trim().toLowerCase())
   .filter(Boolean);
 
-function getPostAuthRedirect(): string {
-  const redirectPath = sessionStorage.getItem('aivo-post-auth-redirect') || '/dashboard';
-  return `${window.location.origin}${redirectPath.startsWith('/') ? redirectPath : '/dashboard'}`;
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -55,8 +51,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         if (event === 'SIGNED_IN') {
           const provider = session?.user.app_metadata.provider;
-          if (provider === 'google') trackEvent('oauth_google_completed');
-          if (provider === 'github') trackEvent('oauth_github_completed');
+          if (provider === 'google' || provider === 'github') {
+            trackEvent(provider === 'google' ? 'oauth_google_completed' : 'oauth_github_completed');
+            clearPostAuthRedirect();
+          }
         }
       }
     );
@@ -105,7 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: getPostAuthRedirect() },
+      options: { redirectTo: getPostAuthRedirectUrl() },
     });
 
     if (error) throw error;
@@ -114,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGithub = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'github',
-      options: { redirectTo: getPostAuthRedirect() },
+      options: { redirectTo: getPostAuthRedirectUrl() },
     });
 
     if (error) throw error;
