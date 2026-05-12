@@ -1,4 +1,4 @@
-import { FileCode, FileJson, FileText, ListChecks, Printer, Share2 } from 'lucide-react';
+import { FileCode, FileJson, FileText, ListChecks, Loader2, Printer, Share2 } from 'lucide-react';
 import { useState } from 'react';
 import Button from '../ui/Button';
 import { AIFixPrompt, ReportRecommendation } from './reportTypes';
@@ -20,6 +20,7 @@ interface ShareActionsProps {
   recommendations: ReportRecommendation[];
   aiFixPromptMarkdown?: string;
   aiFixPromptStructured?: AIFixPrompt;
+  onCustomerPdf?: () => Promise<void> | void;
   onAction?: (action: ShareAction) => void;
 }
 
@@ -107,9 +108,11 @@ export default function ShareActions({
   recommendations,
   aiFixPromptMarkdown,
   aiFixPromptStructured,
+  onCustomerPdf,
   onAction,
 }: ShareActionsProps) {
   const [message, setMessage] = useState('');
+  const [customerPdfBusy, setCustomerPdfBusy] = useState(false);
 
   const copyText = async (text: string, action: 'link' | 'checklist') => {
     try {
@@ -147,10 +150,24 @@ export default function ShareActions({
     onAction?.('recommendations_json');
   };
 
-  const handleCustomerPdf = () => {
-    setMessage('Opening customer report for printing...');
-    onAction?.('customer_pdf');
-    window.print();
+  const handleCustomerPdf = async () => {
+    if (customerPdfBusy) return;
+    setCustomerPdfBusy(true);
+    setMessage(onCustomerPdf ? 'Generating customer PDF...' : 'Opening customer report for printing...');
+    try {
+      if (onCustomerPdf) {
+        await onCustomerPdf();
+        setMessage('Customer PDF downloaded.');
+      } else {
+        window.print();
+      }
+      onAction?.('customer_pdf');
+    } catch (pdfError) {
+      console.error('Customer PDF generation failed:', pdfError);
+      setMessage('Customer PDF generation failed. Please try again.');
+    } finally {
+      setCustomerPdfBusy(false);
+    }
   };
 
   return (
@@ -176,9 +193,9 @@ export default function ShareActions({
           <FileText className="h-4 w-4" />
           Recommendations (.json)
         </Button>
-        <Button type="button" variant="outline" size="sm" className="flex items-center gap-2" onClick={handleCustomerPdf}>
-          <Printer className="h-4 w-4" />
-          Download customer PDF
+        <Button type="button" variant="outline" size="sm" className="flex items-center gap-2" onClick={handleCustomerPdf} disabled={customerPdfBusy}>
+          {customerPdfBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
+          {customerPdfBusy ? 'Generating PDF...' : 'Download customer PDF'}
         </Button>
       </div>
       {message && <p className="text-sm text-gray-600 print:hidden">{message}</p>}

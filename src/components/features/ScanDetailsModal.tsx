@@ -3,6 +3,7 @@ import { X, TrendingUp, AlertCircle, CheckCircle2, Info, FileText, Code, Message
 import { Scan, CategoryScores } from '../../types/database';
 import Button from '../ui/Button';
 import { downloadBlob, dateStamp, safeFilename } from '../../lib/downloadBlob';
+import { downloadPdfFromHtml } from '../../lib/pdfExport';
 import {
   categoryLabels,
   categoryDescriptions,
@@ -16,22 +17,6 @@ interface ScanDetailsModalProps {
   siteName: string;
   siteUrl: string;
   onClose: () => void;
-}
-
-function createPdfSourceElement(html: string): HTMLDivElement {
-  const parsed = new DOMParser().parseFromString(html, 'text/html');
-  const source = document.createElement('div');
-  source.style.background = '#ffffff';
-
-  parsed.head.querySelectorAll('style').forEach((style) => {
-    source.appendChild(document.importNode(style, true));
-  });
-
-  parsed.body.childNodes.forEach((node) => {
-    source.appendChild(document.importNode(node, true));
-  });
-
-  return source;
 }
 
 const categoryIcons: Record<keyof CategoryScores, typeof FileText> = {
@@ -56,19 +41,7 @@ export default function ScanDetailsModal({ scan, siteName, siteUrl, onClose }: S
       if (!html.trim()) {
         throw new Error('Report HTML was empty.');
       }
-      const pdfSource = createPdfSourceElement(html);
-
-      const { default: html2pdf } = await import('html2pdf.js');
-      await html2pdf()
-        .set({
-          margin: 10,
-          filename: `${filenameBase}.pdf`,
-          image: { type: 'jpeg', quality: 0.95 },
-          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        })
-        .from(pdfSource)
-        .save();
+      await downloadPdfFromHtml(html, `${filenameBase}.pdf`);
     } catch (err) {
       console.error('PDF generation failed:', err);
       alert('Failed to generate PDF. Please try again.');

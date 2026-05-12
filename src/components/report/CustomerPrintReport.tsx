@@ -24,6 +24,7 @@ interface CustomerPrintReportProps {
   contentGaps?: ReportContentGap[];
   contentBlueprint?: ReportBlueprintItem[];
   competitorTeardown?: ReportCompetitorBreakdown[];
+  mode?: 'print' | 'pdf';
 }
 
 const severityRank: Record<string, number> = { high: 0, medium: 1, low: 2 };
@@ -75,6 +76,7 @@ export default function CustomerPrintReport({
   contentGaps,
   contentBlueprint,
   competitorTeardown,
+  mode = 'print',
 }: CustomerPrintReportProps) {
   const band = scoreBand(overallScore);
   const headline = customerSummary?.headline
@@ -104,9 +106,12 @@ export default function CustomerPrintReport({
   const unansweredGaps = (contentGaps ?? []).filter((g) => g.has_answer === false);
   const competitorAnsweredGaps = unansweredGaps.filter((g) => g.competitor_has_answer === true);
   const highUpliftBlueprint = (contentBlueprint ?? []).filter((b) => b.expected_citation_uplift === 'high');
+  const rootClassName = mode === 'pdf'
+    ? 'customer-print-report'
+    : 'customer-print-report hidden print:block';
 
   return (
-    <div className="customer-print-report hidden print:block">
+    <div className={rootClassName}>
       <header className="customer-print-cover">
         <div className="customer-print-brand">{SITE.name}</div>
         <h1 className="customer-print-title">AI Visibility Report</h1>

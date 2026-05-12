@@ -5,6 +5,8 @@ import MarketingLayout from '../components/layouts/MarketingLayout';
 import SEOHead from '../components/shared/SEOHead';
 import Button from '../components/ui/Button';
 import { claimPublicScan, fetchPublicReport } from '../lib/publicScan';
+import { dateStamp, safeFilename } from '../lib/downloadBlob';
+import { downloadPdfFromHtml } from '../lib/pdfExport';
 import { SITE } from '../config/site';
 import { useAuth } from '../contexts/AuthContext';
 import { trackEvent } from '../lib/analytics';
@@ -171,6 +173,37 @@ export default function PublicReport() {
     rememberPostAuthRedirect(reportRedirectPath);
   };
 
+  const customerReportProps = {
+    siteName: site?.name ?? 'Public Scan Report',
+    siteUrl: site?.url,
+    scanDate,
+    overallScore: overall,
+    customerSummary,
+    recommendations,
+    strategicReadinessScore,
+    strategicReadinessSummary,
+    generativeAudit,
+    entityMap,
+    contentGaps,
+    contentBlueprint,
+    competitorTeardown,
+  };
+
+  const handleCustomerPdfDownload = async () => {
+    const { renderToStaticMarkup } = await import('react-dom/server');
+    const html = renderToStaticMarkup(
+      <CustomerPrintReport
+        {...customerReportProps}
+        mode="pdf"
+      />,
+    );
+
+    await downloadPdfFromHtml(
+      html,
+      `aivo-customer-report-${safeFilename(customerReportProps.siteName)}-${dateStamp()}.pdf`,
+    );
+  };
+
   return (
     <MarketingLayout>
       <SEOHead
@@ -221,6 +254,7 @@ export default function PublicReport() {
                   recommendations={recommendations}
                   aiFixPromptMarkdown={aiFixPromptMarkdown}
                   aiFixPromptStructured={aiFixPromptStructured}
+                  onCustomerPdf={handleCustomerPdfDownload}
                   onAction={(action) => {
                     setError('');
                     if (action === 'link') trackEvent('report_shared');
@@ -280,19 +314,7 @@ export default function PublicReport() {
             </div>
 
             <CustomerPrintReport
-              siteName={site?.name ?? 'Public Scan Report'}
-              siteUrl={site?.url}
-              scanDate={scanDate}
-              overallScore={overall}
-              customerSummary={customerSummary}
-              recommendations={recommendations}
-              strategicReadinessScore={strategicReadinessScore}
-              strategicReadinessSummary={strategicReadinessSummary}
-              generativeAudit={generativeAudit}
-              entityMap={entityMap}
-              contentGaps={contentGaps}
-              contentBlueprint={contentBlueprint}
-              competitorTeardown={competitorTeardown}
+              {...customerReportProps}
             />
           </>
         )}
