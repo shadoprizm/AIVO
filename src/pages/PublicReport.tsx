@@ -8,14 +8,30 @@ import { claimPublicScan, fetchPublicReport } from '../lib/publicScan';
 import { SITE } from '../config/site';
 import { useAuth } from '../contexts/AuthContext';
 import { trackEvent } from '../lib/analytics';
-import AnswerTests from '../components/report/AnswerTests';
+import { rememberPostAuthRedirect } from '../lib/authRedirect';
+import CompetitorTeardown from '../components/report/CompetitorTeardown';
+import ContentBlueprint from '../components/report/ContentBlueprint';
+import ContentGaps from '../components/report/ContentGaps';
 import CustomerPrintReport from '../components/report/CustomerPrintReport';
+import EntityMap from '../components/report/EntityMap';
+import GenerativeAudit from '../components/report/GenerativeAudit';
 import Recommendations from '../components/report/Recommendations';
 import ReportHeader from '../components/report/ReportHeader';
 import ScoreSummary from '../components/report/ScoreSummary';
 import ShareActions from '../components/report/ShareActions';
 import TechnicalFindings from '../components/report/TechnicalFindings';
-import { AIFixPrompt, CustomerSummary, ReportAnswerTest, ReportRecommendation, asNumber } from '../components/report/reportTypes';
+import {
+  AIFixPrompt,
+  CustomerSummary,
+  ReportBlueprintItem,
+  ReportCompetitorBreakdown,
+  ReportContentGap,
+  ReportEntityMap,
+  ReportGenerativeAudit,
+  ReportQueryBatteryItem,
+  ReportRecommendation,
+  asNumber,
+} from '../components/report/reportTypes';
 import ReportFeedback from '../components/report/ReportFeedback';
 
 interface ReportSite {
@@ -91,7 +107,20 @@ export default function PublicReport() {
   const technical = useMemo(() => asRecord(evidence.technical), [evidence]);
   const technicalEvidence = useMemo(() => asRecord(technical.evidence), [technical]);
   const recommendations = useMemo(() => asArray<ReportRecommendation>(report?.recommendations), [report]);
-  const answerTests = useMemo(() => asArray<ReportAnswerTest>(report?.answerTests), [report]);
+  const queryBattery = useMemo(() => asArray<ReportQueryBatteryItem>(report?.queryBattery), [report]);
+  const generativeAudit = useMemo<ReportGenerativeAudit | null>(() => {
+    const value = report?.generativeAudit;
+    return value && typeof value === 'object' && !Array.isArray(value) ? value as ReportGenerativeAudit : null;
+  }, [report]);
+  const competitorTeardown = useMemo(() => asArray<ReportCompetitorBreakdown>(report?.competitorTeardown), [report]);
+  const entityMap = useMemo<ReportEntityMap | null>(() => {
+    const value = report?.entityMap;
+    return value && typeof value === 'object' && !Array.isArray(value) ? value as ReportEntityMap : null;
+  }, [report]);
+  const contentGaps = useMemo(() => asArray<ReportContentGap>(report?.contentGaps), [report]);
+  const contentBlueprint = useMemo(() => asArray<ReportBlueprintItem>(report?.contentBlueprint), [report]);
+  const strategicReadinessScore = asNumber(report?.strategicReadinessScore);
+  const strategicReadinessSummary = typeof report?.strategicReadinessSummary === 'string' ? report.strategicReadinessSummary : '';
   const aiFixPromptMarkdown = typeof evidence.ai_fix_prompt_markdown === 'string' ? evidence.ai_fix_prompt_markdown : undefined;
   const aiFixPromptStructured = evidence.ai_fix_prompt_structured && typeof evidence.ai_fix_prompt_structured === 'object'
     ? evidence.ai_fix_prompt_structured as AIFixPrompt
@@ -104,6 +133,7 @@ export default function PublicReport() {
   const scanDate = typeof report?.createdAt === 'string' ? report.createdAt : undefined;
   const status = typeof report?.status === 'string' ? report.status : 'partial';
   const visibility = typeof report?.visibility === 'string' ? report.visibility : 'unlisted';
+  const reportRedirectPath = token ? `/report/${token}` : '/dashboard';
 
   useEffect(() => {
     if (authLoading || !user || !token || !report || claimAttempted || visibility === 'private') {
@@ -138,9 +168,7 @@ export default function PublicReport() {
   }, [authLoading, claimAttempted, report, token, user, visibility]);
 
   const rememberReportRedirect = () => {
-    if (token) {
-      sessionStorage.setItem('aivo-post-auth-redirect', `/report/${token}`);
-    }
+    rememberPostAuthRedirect(reportRedirectPath);
   };
 
   return (
@@ -211,16 +239,40 @@ export default function PublicReport() {
               </section>
 
               <ScoreSummary score={score} />
+              {(strategicReadinessScore !== null || strategicReadinessSummary) && (
+                <section className="rounded-lg border border-blue-200 bg-blue-50 p-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex-1">
+                      <h2 className="text-lg font-semibold text-blue-900">Strategic Readiness</h2>
+                      {strategicReadinessSummary && (
+                        <p className="mt-1 text-sm text-blue-900/90">{strategicReadinessSummary}</p>
+                      )}
+                    </div>
+                    {strategicReadinessScore !== null && (
+                      <div className="flex items-center gap-3">
+                        <div className="text-3xl font-bold text-blue-900">{strategicReadinessScore}</div>
+                        <div className="text-xs text-blue-900/70">
+                          out of 100<br />strategic readiness
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
+              <GenerativeAudit audit={generativeAudit} battery={queryBattery} />
+              <CompetitorTeardown competitors={competitorTeardown} />
+              <EntityMap entityMap={entityMap} />
+              <ContentGaps gaps={contentGaps} />
+              <ContentBlueprint blueprint={contentBlueprint} />
               <TechnicalFindings evidence={technicalEvidence} />
               <Recommendations recommendations={recommendations} />
-              <AnswerTests tests={answerTests} />
               {token && <ReportFeedback publicToken={token} />}
 
               {!user && (
                 <section className="rounded-lg border border-blue-200 bg-blue-50 p-6 text-center">
                   <h2 className="text-2xl font-bold text-gray-900">Save this report</h2>
                   <p className="mt-2 text-gray-700">Create free account to save this scan and track improvements.</p>
-                  <Link to={`/signup?redirect=/report/${token ?? ''}`} className="mt-4 inline-block" onClick={rememberReportRedirect}>
+                  <Link to={`/signup?redirect=${encodeURIComponent(reportRedirectPath)}`} className="mt-4 inline-block" onClick={rememberReportRedirect}>
                     <Button>Create free account to save this scan</Button>
                   </Link>
                 </section>
@@ -234,6 +286,13 @@ export default function PublicReport() {
               overallScore={overall}
               customerSummary={customerSummary}
               recommendations={recommendations}
+              strategicReadinessScore={strategicReadinessScore}
+              strategicReadinessSummary={strategicReadinessSummary}
+              generativeAudit={generativeAudit}
+              entityMap={entityMap}
+              contentGaps={contentGaps}
+              contentBlueprint={contentBlueprint}
+              competitorTeardown={competitorTeardown}
             />
           </>
         )}

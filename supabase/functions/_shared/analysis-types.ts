@@ -1,6 +1,7 @@
 export type Severity = 'high' | 'medium' | 'low';
 export type EffortEstimate = 'low' | 'medium' | 'high';
 export type ScanAudience = 'anonymous' | 'authenticated';
+export type RecommendationSource = 'technical' | 'entity' | 'competitor' | 'content_gap' | 'generative';
 
 export interface FetchedResource {
   url: string;
@@ -85,6 +86,7 @@ export interface Recommendation {
   effort_estimate: EffortEstimate;
   owner: 'developer' | 'content' | 'marketing' | 'owner';
   expected_impact: string;
+  source?: RecommendationSource;
 }
 
 export interface TechnicalCheckResult {
@@ -165,6 +167,7 @@ export interface ScanAnalysis {
   ai_fix_prompt_markdown?: string;
   ai_fix_prompt_structured?: AIFixPrompt;
   customer_summary?: CustomerSummary;
+  category_inference?: CategoryInference;
 }
 
 export interface AnswerTest {
@@ -177,4 +180,99 @@ export interface AnswerTest {
   confidence: number;
   missing_evidence: string[];
   raw_excerpt: string;
+}
+
+export type QueryIntent = 'brand' | 'category' | 'comparison' | 'intent' | 'feature';
+export type CitationFormat = 'quoted' | 'listed' | 'linked' | 'named' | 'absent';
+
+export interface QueryBatteryItem extends AnswerTest {
+  intent: QueryIntent;
+  citation_format: CitationFormat;
+}
+
+export interface GenerativeAudit {
+  query_battery: QueryBatteryItem[];
+  brand_mention_rate: number;
+  competitor_mention_rate: number;
+  citation_rate: number;
+  notes: string;
+}
+
+export interface CategoryInference {
+  category: string;
+  category_aliases: string[];
+  brand: string;
+  primary_use_cases: string[];
+}
+
+export interface CompetitorCandidate {
+  name: string;
+  url: string;
+  confidence: number;
+  source: 'inferred' | 'user';
+  reason: string;
+}
+
+export interface CompetitorBreakdown {
+  name: string;
+  url: string;
+  entities_owned: string[];
+  schema_coverage: string[];
+  faq_topics: string[];
+  positioning_summary: string;
+  citation_format_signals: string[];
+  fetch_status: 'ok' | 'failed' | 'skipped';
+}
+
+export interface EntityMap {
+  claimed: string[];
+  perceived: string[];
+  gaps: string[];
+  competitor_owned: string[];
+  salience_score: number;
+  notes: string;
+}
+
+export type ContentIntent = 'informational' | 'commercial' | 'transactional' | 'comparison';
+export type ContentFormat = 'faq' | 'comparison_table' | 'how_to' | 'definition' | 'listicle';
+
+export interface ContentGap {
+  question: string;
+  intent: ContentIntent;
+  has_answer: boolean;
+  competitor_has_answer: boolean;
+  suggested_format: ContentFormat;
+  rationale: string;
+}
+
+export type BlueprintPageType = 'vs_competitor' | 'glossary' | 'how_to' | 'faq_expansion' | 'use_case';
+
+export interface BlueprintSection {
+  heading: string;
+  content_summary: string;
+  format: 'definition' | 'comparison_table' | 'faq' | 'how_to' | 'list';
+}
+
+export interface BlueprintItem {
+  page_type: BlueprintPageType;
+  suggested_url: string;
+  title: string;
+  sections: BlueprintSection[];
+  target_entities: string[];
+  target_queries: string[];
+  schema_template: string;
+  closes_gaps: string[];
+  expected_citation_uplift: 'low' | 'medium' | 'high';
+}
+
+export interface StrategicFindings {
+  category_inference?: CategoryInference;
+  competitors?: CompetitorCandidate[];
+  competitor_teardown?: CompetitorBreakdown[];
+  generative_audit?: GenerativeAudit;
+  entity_map?: EntityMap;
+  content_gaps?: ContentGap[];
+  content_blueprint?: BlueprintItem[];
+  strategic_readiness_score?: number;
+  strategic_readiness_summary?: string;
 }

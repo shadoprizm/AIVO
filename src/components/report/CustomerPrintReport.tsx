@@ -1,5 +1,14 @@
 import { SITE } from '../../config/site';
-import { CustomerSummary, CustomerSummaryIssue, ReportRecommendation } from './reportTypes';
+import {
+  CustomerSummary,
+  CustomerSummaryIssue,
+  ReportBlueprintItem,
+  ReportCompetitorBreakdown,
+  ReportContentGap,
+  ReportEntityMap,
+  ReportGenerativeAudit,
+  ReportRecommendation,
+} from './reportTypes';
 
 interface CustomerPrintReportProps {
   siteName: string;
@@ -8,6 +17,13 @@ interface CustomerPrintReportProps {
   overallScore: number;
   customerSummary?: CustomerSummary;
   recommendations: ReportRecommendation[];
+  strategicReadinessScore?: number | null;
+  strategicReadinessSummary?: string;
+  generativeAudit?: ReportGenerativeAudit | null;
+  entityMap?: ReportEntityMap | null;
+  contentGaps?: ReportContentGap[];
+  contentBlueprint?: ReportBlueprintItem[];
+  competitorTeardown?: ReportCompetitorBreakdown[];
 }
 
 const severityRank: Record<string, number> = { high: 0, medium: 1, low: 2 };
@@ -52,6 +68,13 @@ export default function CustomerPrintReport({
   overallScore,
   customerSummary,
   recommendations,
+  strategicReadinessScore,
+  strategicReadinessSummary,
+  generativeAudit,
+  entityMap,
+  contentGaps,
+  contentBlueprint,
+  competitorTeardown,
 }: CustomerPrintReportProps) {
   const band = scoreBand(overallScore);
   const headline = customerSummary?.headline
@@ -68,6 +91,19 @@ export default function CustomerPrintReport({
       customerIssuesByIndex.set(issue.recommendation_index, issue);
     }
   });
+
+  const brandMentionPct = typeof generativeAudit?.brand_mention_rate === 'number'
+    ? Math.round(generativeAudit.brand_mention_rate * 100)
+    : null;
+  const citationPct = typeof generativeAudit?.citation_rate === 'number'
+    ? Math.round(generativeAudit.citation_rate * 100)
+    : null;
+  const competitorMentionPct = typeof generativeAudit?.competitor_mention_rate === 'number'
+    ? Math.round(generativeAudit.competitor_mention_rate * 100)
+    : null;
+  const unansweredGaps = (contentGaps ?? []).filter((g) => g.has_answer === false);
+  const competitorAnsweredGaps = unansweredGaps.filter((g) => g.competitor_has_answer === true);
+  const highUpliftBlueprint = (contentBlueprint ?? []).filter((b) => b.expected_citation_uplift === 'high');
 
   return (
     <div className="customer-print-report hidden print:block">
@@ -87,6 +123,114 @@ export default function CustomerPrintReport({
         <p className="customer-print-headline">{headline}</p>
         <p className="customer-print-interpretation">{interpretation}</p>
       </header>
+
+      {(typeof strategicReadinessScore === 'number' || strategicReadinessSummary) && (
+        <section className="customer-print-section">
+          <h2 className="customer-print-section-title">Strategic readiness</h2>
+          {typeof strategicReadinessScore === 'number' && (
+            <p className="customer-print-headline">
+              Strategic readiness score: <strong>{strategicReadinessScore} / 100</strong>
+            </p>
+          )}
+          {strategicReadinessSummary && <p>{strategicReadinessSummary}</p>}
+        </section>
+      )}
+
+      {(brandMentionPct !== null || citationPct !== null) && (
+        <section className="customer-print-section">
+          <h2 className="customer-print-section-title">How AI assistants see you</h2>
+          <ul className="customer-print-issues">
+            {brandMentionPct !== null && (
+              <li className="customer-print-issue">
+                <p>
+                  Your brand appeared in <strong>{brandMentionPct}%</strong> of the simulated AI questions we ran.
+                  {brandMentionPct < 30 && ' That means most people asking AI about your space never hear about you.'}
+                </p>
+              </li>
+            )}
+            {citationPct !== null && (
+              <li className="customer-print-issue">
+                <p>
+                  Your site was quoted or linked in <strong>{citationPct}%</strong> of those responses.
+                  {citationPct < 20 && ' Being mentioned by name is good — being cited as the source is what drives traffic.'}
+                </p>
+              </li>
+            )}
+            {competitorMentionPct !== null && (
+              <li className="customer-print-issue">
+                <p>
+                  Competitors appeared in <strong>{competitorMentionPct}%</strong> of the same questions. They're the default answer.
+                </p>
+              </li>
+            )}
+          </ul>
+        </section>
+      )}
+
+      {entityMap && ((entityMap.gaps?.length ?? 0) > 0 || (entityMap.competitor_owned?.length ?? 0) > 0) && (
+        <section className="customer-print-section">
+          <h2 className="customer-print-section-title">What you stand for in AI minds</h2>
+          {(entityMap.gaps?.length ?? 0) > 0 && (
+            <p>
+              Your site claims these topics, but AI engines don't yet link them to you: <strong>{entityMap.gaps!.slice(0, 5).join(', ')}</strong>.
+              Reinforcing them gives you a chance to be the answer when people ask.
+            </p>
+          )}
+          {(entityMap.competitor_owned?.length ?? 0) > 0 && (
+            <p>
+              Competitors clearly own these topics that you don't claim: <strong>{entityMap.competitor_owned!.slice(0, 5).join(', ')}</strong>.
+              Establishing your position on these makes you eligible as an alternative answer.
+            </p>
+          )}
+        </section>
+      )}
+
+      {competitorAnsweredGaps.length > 0 && (
+        <section className="customer-print-section">
+          <h2 className="customer-print-section-title">Questions your competitors answer that you don't</h2>
+          <ol className="customer-print-issues">
+            {competitorAnsweredGaps.slice(0, 8).map((gap, i) => (
+              <li key={`gap-${i}`} className="customer-print-issue">
+                <p><strong>"{gap.question}"</strong></p>
+                {gap.rationale && <p>{gap.rationale}</p>}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {highUpliftBlueprint.length > 0 && (
+        <section className="customer-print-section">
+          <h2 className="customer-print-section-title">Highest-impact pages to build first</h2>
+          <ol className="customer-print-issues">
+            {highUpliftBlueprint.slice(0, 6).map((item, i) => (
+              <li key={`bp-${i}`} className="customer-print-issue">
+                <p><strong>{item.title}</strong> {item.suggested_url && <span>({item.suggested_url})</span>}</p>
+                {(item.target_queries?.length ?? 0) > 0 && (
+                  <p>Targets questions like: {item.target_queries!.slice(0, 3).map((q) => `"${q}"`).join(', ')}.</p>
+                )}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {(competitorTeardown ?? []).length > 0 && (
+        <section className="customer-print-section">
+          <h2 className="customer-print-section-title">Who you're up against</h2>
+          <ol className="customer-print-issues">
+            {competitorTeardown!.slice(0, 5).map((c, i) => (
+              <li key={`comp-${i}`} className="customer-print-issue">
+                <p>
+                  <strong>{c.name ?? 'Competitor'}</strong>
+                  {c.url && <span> — {new URL(c.url).hostname.replace(/^www\./, '')}</span>}
+                </p>
+                {c.positioning_summary && <p>{c.positioning_summary}</p>}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
 
       <section className="customer-print-section">
         <h2 className="customer-print-section-title">What we found</h2>

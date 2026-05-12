@@ -2,11 +2,37 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { analyzeWithDeepSeek, getDeepSeekTimeoutMs } from '../_shared/deepseek-analyzer.ts';
-import { runAnswerSimulations } from '../_shared/answer-tests.ts';
+import { runQueryBattery, summarizeGenerativeAudit } from '../_shared/answer-tests.ts';
+import { discoverCompetitors } from '../_shared/competitor-discovery.ts';
+import { runCompetitorTeardown } from '../_shared/competitor-teardown.ts';
+import { buildEntityMap } from '../_shared/entity-map.ts';
+import { findContentGaps } from '../_shared/content-gap.ts';
+import { buildContentBlueprint } from '../_shared/content-blueprint.ts';
+import {
+  computeStrategicReadinessScore,
+  deriveCompetitivePresenceScore,
+  summarizeStrategicReadiness,
+  synthesizeStrategicRecommendations,
+  weightedOverallScore,
+} from '../_shared/strategic-synthesis.ts';
 import { discoverSite } from '../_shared/site-discovery.ts';
 import { runTechnicalChecks } from '../_shared/technical-checks.ts';
 import { isPrivateIp, isValidUrl, normalizeUrl } from '../_shared/url.ts';
-import { AIVOScoreV2, ScanAnalysis, ScanInput, TechnicalCheckResult } from '../_shared/analysis-types.ts';
+import {
+  AIVOScoreV2,
+  BlueprintItem,
+  CompetitorBreakdown,
+  CompetitorCandidate,
+  ContentGap,
+  EntityMap,
+  GenerativeAudit,
+  QueryBatteryItem,
+  Recommendation,
+  ScanAnalysis,
+  ScanInput,
+  StrategicFindings,
+  TechnicalCheckResult,
+} from '../_shared/analysis-types.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -258,21 +284,127 @@ Deno.serve(async (req: Request) => {
     const technical = runTechnicalChecks(discoveredSite);
     const scanInput: ScanInput = { site: discoveredSite, technical };
     const llmAnalysis = await analyzeWithDeepSeek(scanInput, getDeepSeekTimeoutMs('anonymous'));
-    const answerTests = llmAnalysis ? await runAnswerSimulations(discoveredSite, 20_000) : [];
     const analysis = llmAnalysis ?? technicalOnlyAnalysis(technical);
     const publicStatus: PublicScanResponse['status'] = llmAnalysis ? 'complete' : 'partial';
     const message = publicStatus === 'partial'
       ? 'AI analysis processing — rescan in 60 seconds for full report'
       : undefined;
-    const v2Score = toV2Score(analysis);
+
+    const category = llmAnalysis?.category_inference;
+    const moduleTimings: Record<string, number> = {};
+
+    async function timed<T>(name: string, fn: () => Promise<T>): Promise<T> {
+      const start = Date.now();
+      try {
+        return await fn();
+      } finally {
+        moduleTimings[name] = Date.now() - start;
+      }
+    }
+
+    let competitors: CompetitorCandidate[] = [];
+    let competitorTeardown: CompetitorBreakdown[] = [];
+    let queryBattery: QueryBatteryItem[] = [];
+    let generativeAudit: GenerativeAudit | undefined;
+    let entityMap: EntityMap | null = null;
+    let contentGaps: ContentGap[] = [];
+    let blueprint: BlueprintItem[] = [];
+
+    if (llmAnalysis && category) {
+      competitors = await timed('competitor_discovery', () =>
+        discoverCompetitors(discoveredSite, category, { timeoutMs: 10_000, max: 6 })
+      );
+
+      const [batteryResult, teardownResult] = await Promise.all([
+        timed('query_battery', () =>
+          runQueryBattery(discoveredSite, category, competitors, { timeoutMs: 20_000 })
+        ),
+        timed('competitor_teardown', () =>
+          runCompetitorTeardown(competitors, { timeoutMs: 15_000, max: 5 })
+        ),
+      ]);
+      queryBattery = batteryResult;
+      competitorTeardown = teardownResult;
+      generativeAudit = summarizeGenerativeAudit(queryBattery);
+
+      const [mapResult, gapResult] = await Promise.all([
+        timed('entity_map', () =>
+          buildEntityMap(discoveredSite, category, queryBattery, competitorTeardown, { timeoutMs: 15_000 })
+        ),
+        timed('content_gap', () =>
+          findContentGaps(discoveredSite, category, competitorTeardown, { timeoutMs: 20_000 })
+        ),
+      ]);
+      entityMap = mapResult;
+      contentGaps = gapResult;
+
+      blueprint = await timed('content_blueprint', () =>
+        buildContentBlueprint(entityMap, contentGaps, competitorTeardown, category, { timeoutMs: 20_000 })
+      );
+    } else if (llmAnalysis) {
+      // No category inference — still run a minimal query battery for back-compat answer tests.
+      queryBattery = await timed('query_battery_fallback', () =>
+        runQueryBattery(discoveredSite, undefined, [], { timeoutMs: 15_000 })
+      );
+      generativeAudit = summarizeGenerativeAudit(queryBattery);
+    }
+
+    const strategicFindings: StrategicFindings = {
+      category_inference: category,
+      competitors,
+      competitor_teardown: competitorTeardown,
+      generative_audit: generativeAudit,
+      entity_map: entityMap ?? undefined,
+      content_gaps: contentGaps,
+      content_blueprint: blueprint,
+    };
+    strategicFindings.strategic_readiness_score = computeStrategicReadinessScore(strategicFindings);
+    strategicFindings.strategic_readiness_summary = summarizeStrategicReadiness(strategicFindings);
+
+    const strategicRecs = synthesizeStrategicRecommendations(
+      entityMap,
+      contentGaps,
+      blueprint,
+      competitorTeardown,
+      generativeAudit,
+    );
+    const combinedRecommendations: Recommendation[] = [
+      ...analysis.recommendations,
+      ...strategicRecs,
+    ];
+
+    const competitivePresenceFromAudit = deriveCompetitivePresenceScore(generativeAudit);
+    if (competitivePresenceFromAudit !== null) {
+      const nextScores = {
+        ...analysis.scores,
+        competitive_presence: competitivePresenceFromAudit,
+      };
+      analysis.scores = {
+        ...nextScores,
+        overall: weightedOverallScore(nextScores),
+      };
+    }
+
+    const v2Score = toV2Score({ ...analysis });
     const v2Evidence = {
       analysis_status: publicStatus,
       message,
       summary: analysis.summary,
       crawl: discoveredSite.evidence,
       technical,
-      recommendations: analysis.recommendations,
-      answer_tests: answerTests,
+      recommendations: combinedRecommendations,
+      answer_tests: queryBattery,
+      query_battery: queryBattery,
+      generative_audit: generativeAudit,
+      category_inference: category,
+      competitors,
+      competitor_teardown: competitorTeardown,
+      entity_map: entityMap,
+      content_gaps: contentGaps,
+      content_blueprint: blueprint,
+      strategic_readiness_score: strategicFindings.strategic_readiness_score,
+      strategic_readiness_summary: strategicFindings.strategic_readiness_summary,
+      module_timings_ms: moduleTimings,
       ai_fix_prompt_markdown: analysis.ai_fix_prompt_markdown,
       ai_fix_prompt_structured: analysis.ai_fix_prompt_structured,
       customer_summary: analysis.customer_summary,

@@ -231,7 +231,9 @@ export function runTechnicalChecks(site: DiscoveredSite): TechnicalCheckResult {
     answer_readiness: clampScore((hasFaqSchema ? 35 : 0) + (h1Count === 1 ? 20 : 5) + (validHeadingOrder ? 20 : 0) + (site.detected_pages.faq.length ? 15 : 0) + (textOnly.length > 1200 ? 10 : 0)),
     citation_likelihood: clampScore((canonical ? 20 : 0) + (hasOpenGraph ? 15 : 0) + (hasTwitterMetadata ? 10 : 0) + (site.detected_pages.trust.length ? 20 : 0) + (schemaTypes.length ? 20 : 0) + (sitemapValidXml ? 15 : 0)),
     trust_evidence: clampScore((site.detected_pages.about.length ? 20 : 0) + (site.detected_pages.contact.length ? 20 : 0) + (site.detected_pages.trust.length ? 25 : 0) + (schemaTypes.includes('Organization') ? 20 : 0) + (llms ? 15 : 0)),
-    competitive_presence: 50,
+    // Placeholder. Strategic synthesis replaces this with a citation-rate-derived value from the query battery.
+    // If the strategic pass fails, the LLM analyzer's competitive_presence guess (merged in deepseek-analyzer.ts) is the fallback.
+    competitive_presence: 0,
   };
   const scores: TechnicalScores = {
     ...baseScores,

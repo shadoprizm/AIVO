@@ -23,7 +23,14 @@ Rules:
 - Every recommendation must include title severity evidence why_it_matters exact_fix effort_estimate owner expected_impact
 - Return strict JSON. No markdown. No explanations outside JSON.
 
-You must also produce three additional fields alongside the recommendations: ai_fix_prompt_markdown, ai_fix_prompt_structured, and customer_summary.
+You must also produce four additional fields alongside the recommendations: category_inference, ai_fix_prompt_markdown, ai_fix_prompt_structured, and customer_summary.
+
+category_inference rules:
+- Infer the target's product category in 2-5 words (e.g. "free website security scanner", "team chat platform", "AI visibility audit tool")
+- category_aliases: 2-4 alternate phrasings real users would search for
+- brand: the canonical brand name (not the domain). If the brand is unclear, fall back to the domain without TLD.
+- primary_use_cases: 2-4 short imperative phrases describing what a user comes here to do (e.g. "scan my site for vulnerabilities", "monitor competitor mentions")
+- This inference seeds downstream competitor discovery and query simulation, so be specific and accurate.
 
 ai_fix_prompt_markdown rules:
 - A complete, ready-to-paste prompt for an AI coding agent (Claude Code, Cursor, GitHub Copilot)
@@ -95,7 +102,7 @@ function buildMessages(scanData: ScanInput): ChatMessage[] {
     {
       role: 'user',
       content: JSON.stringify({
-        instruction: 'Analyze this crawl and return JSON with scores, summary, evidence-backed recommendations, an AI agent fix prompt (markdown + structured), and a plain-language customer summary.',
+        instruction: 'Analyze this crawl and return JSON with scores, summary, category_inference, evidence-backed recommendations, an AI agent fix prompt (markdown + structured), and a plain-language customer summary.',
         required_shape: {
           scores: {
             crawl_access: 'number',
@@ -107,6 +114,12 @@ function buildMessages(scanData: ScanInput): ChatMessage[] {
             overall: 'number',
           },
           summary: 'string',
+          category_inference: {
+            category: 'string (2-5 words)',
+            category_aliases: 'string[] (2-4 phrasings)',
+            brand: 'string (canonical brand name)',
+            primary_use_cases: 'string[] (2-4 imperative phrases)',
+          },
           recommendations: [
             {
               title: 'string',
@@ -212,6 +225,10 @@ export async function analyzeWithDeepSeek(scanData: ScanInput, timeoutMs: number
       return {
         ...parsed,
         scores: mergeScores(scanData.technical.scores, parsed.scores),
+        recommendations: (parsed.recommendations ?? []).map((rec) => ({
+          ...rec,
+          source: rec.source ?? 'technical',
+        })),
       };
     } catch {
       return null;
