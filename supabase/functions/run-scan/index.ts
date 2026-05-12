@@ -10,6 +10,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
 };
 
+const adminEmails = (Deno.env.get('ADMIN_EMAILS') ?? '')
+  .split(',')
+  .map((email) => email.trim().toLowerCase())
+  .filter(Boolean);
+
 interface RequestBody {
   siteId: string;
 }
@@ -277,6 +282,10 @@ async function isUserBlockedFromScans(
   return Boolean(moderation?.length || abuseBlock?.length);
 }
 
+function isAdminEmail(email?: string | null): boolean {
+  return Boolean(email && adminEmails.includes(email.toLowerCase()));
+}
+
 async function callDeepSeek(messages: ChatMessage[], timeoutMs: number): Promise<string | null> {
   const apiKey = Deno.env.get('DEEPSEEK_API_KEY');
   const baseUrl = (Deno.env.get('DEEPSEEK_BASE_URL') || 'https://api.deepseek.com/v1').replace(/\/$/, '');
@@ -354,6 +363,7 @@ Deno.serve(async (req: Request) => {
       throw new Error('Account suspended');
     }
 
+    const isAdmin = isAdminEmail(user.email);
     const { siteId }: RequestBody = await req.json();
 
     if (!siteId) {
@@ -378,16 +388,18 @@ Deno.serve(async (req: Request) => {
       throw new Error('Blocked unsafe site URL');
     }
 
-    const recentScansResult = await supabase
-      .from('scans')
-      .select('created_at')
-      .eq('site_id', siteId)
-      .gte('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString())
-      .order('created_at', { ascending: false })
-      .limit(5);
+    if (!isAdmin) {
+      const recentScansResult = await supabase
+        .from('scans')
+        .select('created_at')
+        .eq('site_id', siteId)
+        .gte('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString())
+        .order('created_at', { ascending: false })
+        .limit(5);
 
-    if (recentScansResult.data && recentScansResult.data.length >= 5) {
-      throw new Error('Rate limit: Maximum 5 scans per hour per site');
+      if (recentScansResult.data && recentScansResult.data.length >= 5) {
+        throw new Error('Rate limit: Maximum 5 scans per hour per site');
+      }
     }
 
     const { data: newScan, error: insertError } = await supabase
