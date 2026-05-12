@@ -2,6 +2,7 @@ import { FileCode, FileJson, FileText, ListChecks, Printer, Share2 } from 'lucid
 import { useState } from 'react';
 import Button from '../ui/Button';
 import { AIFixPrompt, ReportRecommendation } from './reportTypes';
+import { downloadBlob, dateStamp } from '../../lib/downloadBlob';
 
 export type ShareAction =
   | 'link'
@@ -96,20 +97,6 @@ function buildFallbackPromptJson(
     })),
     post_fix_action: `Re-run the AIVO scan and confirm the overall score is higher than ${overallScore}.`,
   };
-}
-
-function downloadBlob(content: string, filename: string, mime: string): void {
-  const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
-function dateStamp(): string {
-  return new Date().toISOString().slice(0, 10);
 }
 
 export default function ShareActions({

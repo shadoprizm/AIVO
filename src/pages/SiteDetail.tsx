@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ExternalLink, Play, Calendar, Clock, CheckCircle, XCircle, AlertCircle, TrendingUp } from 'lucide-react';
+import { ExternalLink, Play, Calendar, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import DashboardLayout from '../components/layouts/DashboardLayout';
 import Button from '../components/ui/Button';
 import ScanDetailsModal from '../components/features/ScanDetailsModal';
+import ScoreTrendChart from '../components/features/ScoreTrendChart';
 import Breadcrumbs from '../components/shared/Breadcrumbs';
 import { supabase } from '../lib/supabase';
 import { Site, Scan } from '../types/database';
@@ -196,40 +197,11 @@ export default function SiteDetail() {
               href={site.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-700 flex items-center gap-1 mb-4"
+              className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
             >
               {site.url.replace(/^https?:\/\//, '')}
               <ExternalLink className="w-4 h-4" />
             </a>
-
-            {completedScans.slice(0, 5).length > 1 && (
-              <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
-                <TrendingUp className="w-5 h-5 text-blue-600" />
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Score Trend (Last 5 Scans)</p>
-                  <div className="flex items-center gap-2">
-                    {completedScans
-                      .slice(0, 5)
-                      .reverse()
-                      .map((scan, idx) => (
-                        <span key={scan.id} className="flex items-center">
-                          <span className={`font-semibold ${
-                            scan.overall_score >= 80 ? 'text-green-600' :
-                            scan.overall_score >= 60 ? 'text-blue-600' :
-                            scan.overall_score >= 40 ? 'text-yellow-600' :
-                            'text-red-600'
-                          }`}>
-                            {scan.overall_score}
-                          </span>
-                          {idx < Math.min(4, completedScans.length - 1) && (
-                            <span className="mx-1 text-gray-400">→</span>
-                          )}
-                        </span>
-                      ))}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
           <Button
             className="flex items-center gap-2"
@@ -249,6 +221,12 @@ export default function SiteDetail() {
             )}
           </Button>
         </div>
+
+        {completedScans.length >= 2 && (
+          <div className="mb-6">
+            <ScoreTrendChart scans={completedScans} />
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4 pt-6 border-t border-gray-100">
           <div>

@@ -1,6 +1,15 @@
-import { X, TrendingUp, AlertCircle, CheckCircle2, Info, FileText, Code, MessageSquare, Shield, Zap, Layout, Printer } from 'lucide-react';
+import { useState } from 'react';
+import { X, TrendingUp, AlertCircle, CheckCircle2, Info, FileText, Code, MessageSquare, Shield, Zap, Layout, FileJson, FileCode, Loader2 } from 'lucide-react';
 import { Scan, CategoryScores } from '../../types/database';
 import Button from '../ui/Button';
+import { downloadBlob, dateStamp, safeFilename } from '../../lib/downloadBlob';
+import {
+  categoryLabels,
+  categoryDescriptions,
+  generateReportHTML,
+  generateReportMarkdown,
+  generateReportJSON,
+} from '../../lib/reportGenerators';
 
 interface ScanDetailsModalProps {
   scan: Scan;
@@ -8,24 +17,6 @@ interface ScanDetailsModalProps {
   siteUrl: string;
   onClose: () => void;
 }
-
-const categoryLabels: Record<keyof CategoryScores, string> = {
-  content_clarity: 'Content Clarity',
-  semantic_structure: 'Semantic Structure',
-  schema_metadata: 'Schema & Metadata',
-  qa_readiness: 'Q&A Readiness',
-  authority_trust: 'Authority & Trust',
-  technical_accessibility: 'Technical Accessibility',
-};
-
-const categoryDescriptions: Record<keyof CategoryScores, string> = {
-  content_clarity: 'Clear, factual writing with scannable structure',
-  semantic_structure: 'Proper HTML5 tags and heading hierarchy',
-  schema_metadata: 'Schema.org markup and meta tags',
-  qa_readiness: 'FAQ sections and Q&A formatting',
-  authority_trust: 'Credentials, citations, and expertise signals',
-  technical_accessibility: 'Fast loading and mobile-friendly',
-};
 
 const categoryIcons: Record<keyof CategoryScores, typeof FileText> = {
   content_clarity: FileText,
@@ -37,214 +28,54 @@ const categoryIcons: Record<keyof CategoryScores, typeof FileText> = {
 };
 
 export default function ScanDetailsModal({ scan, siteName, siteUrl, onClose }: ScanDetailsModalProps) {
-  const handlePrint = () => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      alert('Please allow pop-ups to print the report');
-      return;
-    }
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
-    const htmlContent = generatePrintHTML();
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 250);
+  const filenameBase = `aivo-report-${safeFilename(siteName)}-${dateStamp()}`;
+
+  const handleDownloadPDF = async () => {
+    if (!scan.analysis_json || generatingPdf) return;
+    setGeneratingPdf(true);
+    try {
+      const html = generateReportHTML({ scan, siteName, siteUrl });
+      const container = document.createElement('div');
+      container.innerHTML = html;
+      container.style.position = 'fixed';
+      container.style.left = '-10000px';
+      container.style.top = '0';
+      container.style.width = '800px';
+      document.body.appendChild(container);
+
+      const { default: html2pdf } = await import('html2pdf.js');
+      await html2pdf()
+        .set({
+          margin: 10,
+          filename: `${filenameBase}.pdf`,
+          image: { type: 'jpeg', quality: 0.95 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        })
+        .from(container)
+        .save();
+
+      document.body.removeChild(container);
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setGeneratingPdf(false);
+    }
   };
 
-  const generatePrintHTML = () => {
-    if (!scan.analysis_json) return '';
-    const { analysis_json } = scan;
-
-    const getScoreColorClass = (score: number) => {
-      if (score >= 80) return 'score-high';
-      if (score >= 60) return 'score-good';
-      if (score >= 40) return 'score-medium';
-      return 'score-low';
-    };
-
-    const strengths: string[] = [];
-    const weaknesses: string[] = [];
-    Object.entries(analysis_json.category_scores).forEach(([key, score]) => {
-      const label = categoryLabels[key as keyof CategoryScores];
-      if (score >= 70) strengths.push(label);
-      else if (score < 60) weaknesses.push(label);
-    });
-
-    const recommendationsByPriority = {
-      high: analysis_json.recommendations?.filter(r => r.severity === 'high') || [],
-      medium: analysis_json.recommendations?.filter(r => r.severity === 'medium') || [],
-      low: analysis_json.recommendations?.filter(r => r.severity === 'low') || [],
-    };
-
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>AIVO Insights Report - ${siteName}</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #1f2937; padding: 40px; }
-    h1 { font-size: 28px; color: #1f2937; margin-bottom: 10px; }
-    h2 { font-size: 20px; color: #1f2937; margin-top: 30px; margin-bottom: 15px; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; }
-    h3 { font-size: 16px; color: #1f2937; margin-top: 20px; margin-bottom: 10px; }
-    .header { text-align: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 3px solid #3b82f6; }
-    .site-info { color: #6b7280; font-size: 14px; margin-top: 8px; }
-    .score-badge { display: inline-block; padding: 15px 30px; border-radius: 8px; font-size: 36px; font-weight: bold; margin: 20px 0; }
-    .score-high { background: #dcfce7; color: #16a34a; }
-    .score-good { background: #dbeafe; color: #2563eb; }
-    .score-medium { background: #fef9c3; color: #ca8a04; }
-    .score-low { background: #fee2e2; color: #dc2626; }
-    .summary { background: #eff6ff; padding: 20px; border-radius: 8px; margin-bottom: 30px; border-left: 4px solid #3b82f6; }
-    .summary-section { margin-bottom: 15px; }
-    .summary-label { font-weight: 600; color: #374151; margin-bottom: 5px; }
-    .category { margin-bottom: 20px; padding: 15px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb; }
-    .category-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .category-name { font-weight: 600; font-size: 15px; }
-    .category-score { font-weight: bold; padding: 4px 12px; border-radius: 6px; }
-    .category-desc { color: #6b7280; font-size: 14px; }
-    .recommendation { margin-bottom: 20px; padding: 15px; border-radius: 8px; border: 2px solid; page-break-inside: avoid; }
-    .rec-high { background: #fef2f2; border-color: #fecaca; }
-    .rec-medium { background: #fffbeb; border-color: #fde68a; }
-    .rec-low { background: #eff6ff; border-color: #bfdbfe; }
-    .rec-title { font-weight: 600; margin-bottom: 8px; font-size: 15px; }
-    .rec-effort { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-bottom: 8px; }
-    .effort-easy { background: #dcfce7; color: #16a34a; }
-    .effort-medium { background: #fef9c3; color: #ca8a04; }
-    .effort-hard { background: #fee2e2; color: #dc2626; }
-    .rec-desc { color: #4b5563; font-size: 14px; margin-bottom: 10px; }
-    .rec-fix { background: #fff; padding: 12px; border-radius: 6px; border: 1px solid #d1d5db; }
-    .rec-fix-label { font-weight: 600; font-size: 13px; margin-bottom: 5px; }
-    .rec-fix-text { font-size: 13px; color: #4b5563; }
-    .warning, .note { padding: 12px; margin-bottom: 10px; border-radius: 6px; font-size: 14px; page-break-inside: avoid; }
-    .warning { background: #fef2f2; border-left: 4px solid #ef4444; }
-    .note { background: #f0fdf4; border-left: 4px solid #22c55e; }
-    ul { margin-left: 20px; }
-    @media print {
-      body { padding: 20px; }
-      .page-break { page-break-before: always; }
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>AIVO Insights Report</h1>
-    <div class="site-info">
-      <div><strong>${siteName}</strong></div>
-      <div>${siteUrl}</div>
-      <div style="margin-top: 8px;">Scan Date: ${new Date(scan.created_at).toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-      })}</div>
-    </div>
-    <div class="score-badge ${getScoreColorClass(analysis_json.overall_score)}">
-      ${analysis_json.overall_score}
-    </div>
-    <div style="color: #6b7280; font-size: 14px;">Overall AIVO Score</div>
-  </div>
-
-  ${strengths.length > 0 || weaknesses.length > 0 ? `
-  <div class="summary">
-    <h3 style="margin-top: 0;">Executive Summary</h3>
-    ${strengths.length > 0 ? `
-    <div class="summary-section">
-      <div class="summary-label">Strengths:</div>
-      <div>Strong performance in ${strengths.join(', ')}.</div>
-    </div>` : ''}
-    ${weaknesses.length > 0 ? `
-    <div class="summary-section">
-      <div class="summary-label">Areas for Improvement:</div>
-      <div>Focus needed on ${weaknesses.join(', ')}.</div>
-    </div>` : ''}
-  </div>` : ''}
-
-  <h2>Category Breakdown</h2>
-  ${Object.entries(analysis_json.category_scores).map(([key, score]) => `
-    <div class="category">
-      <div class="category-header">
-        <span class="category-name">${categoryLabels[key as keyof CategoryScores]}</span>
-        <span class="category-score ${getScoreColorClass(score)}">${score}</span>
-      </div>
-      <div class="category-desc">${categoryDescriptions[key as keyof CategoryScores]}</div>
-      ${analysis_json.category_feedback && analysis_json.category_feedback[key as keyof CategoryScores]?.score_reason ? `
-      <div class="category-desc" style="color: #111827;"><strong>Why this score:</strong> ${analysis_json.category_feedback[key as keyof CategoryScores]?.score_reason}</div>` : ''}
-      ${analysis_json.category_feedback && analysis_json.category_feedback[key as keyof CategoryScores]?.improvement_path ? `
-      <div class="category-desc" style="color: #1d4ed8;"><strong>Path to 100:</strong> ${analysis_json.category_feedback[key as keyof CategoryScores]?.improvement_path}</div>` : ''}
-    </div>
-  `).join('')}
-
-  ${analysis_json.recommendations && analysis_json.recommendations.length > 0 ? `
-  <div class="page-break"></div>
-  <h2>Recommendations</h2>
-
-  ${recommendationsByPriority.high.length > 0 ? `
-  <h3 style="color: #dc2626;">High Priority (${recommendationsByPriority.high.length} items)</h3>
-  ${recommendationsByPriority.high.map(rec => `
-    <div class="recommendation rec-high">
-      <div class="rec-title">${rec.title}</div>
-      <div class="rec-effort effort-${rec.implementation_effort}">${rec.implementation_effort} effort</div>
-      <div class="rec-desc">${rec.description}</div>
-      <div class="rec-fix">
-        <div class="rec-fix-label">Suggested Fix:</div>
-        <div class="rec-fix-text">${rec.suggested_fix}</div>
-      </div>
-    </div>
-  `).join('')}` : ''}
-
-  ${recommendationsByPriority.medium.length > 0 ? `
-  <h3 style="color: #ca8a04;">Medium Priority (${recommendationsByPriority.medium.length} items)</h3>
-  ${recommendationsByPriority.medium.map(rec => `
-    <div class="recommendation rec-medium">
-      <div class="rec-title">${rec.title}</div>
-      <div class="rec-effort effort-${rec.implementation_effort}">${rec.implementation_effort} effort</div>
-      <div class="rec-desc">${rec.description}</div>
-      <div class="rec-fix">
-        <div class="rec-fix-label">Suggested Fix:</div>
-        <div class="rec-fix-text">${rec.suggested_fix}</div>
-      </div>
-    </div>
-  `).join('')}` : ''}
-
-  ${recommendationsByPriority.low.length > 0 ? `
-  <h3 style="color: #2563eb;">Low Priority (${recommendationsByPriority.low.length} items)</h3>
-  ${recommendationsByPriority.low.map(rec => `
-    <div class="recommendation rec-low">
-      <div class="rec-title">${rec.title}</div>
-      <div class="rec-effort effort-${rec.implementation_effort}">${rec.implementation_effort} effort</div>
-      <div class="rec-desc">${rec.description}</div>
-      <div class="rec-fix">
-        <div class="rec-fix-label">Suggested Fix:</div>
-        <div class="rec-fix-text">${rec.suggested_fix}</div>
-      </div>
-    </div>
-  `).join('')}` : ''}
-  ` : ''}
-
-  ${analysis_json.warnings && analysis_json.warnings.length > 0 ? `
-  <h2>Warnings</h2>
-  ${analysis_json.warnings.map((warning, idx) => `
-    <div class="warning">${idx + 1}. ${warning}</div>
-  `).join('')}` : ''}
-
-  ${analysis_json.notes && analysis_json.notes.length > 0 ? `
-  <h2>Positive Notes</h2>
-  ${analysis_json.notes.map((note, idx) => `
-    <div class="note">${idx + 1}. ${note}</div>
-  `).join('')}` : ''}
-
-  <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
-    Generated by AIVO Insights | Custom Built by Astra Web Dev
-  </div>
-</body>
-</html>
-    `;
+  const handleDownloadMarkdown = () => {
+    const md = generateReportMarkdown({ scan, siteName, siteUrl });
+    downloadBlob(md, `${filenameBase}.md`, 'text/markdown');
   };
+
+  const handleDownloadJSON = () => {
+    const json = generateReportJSON({ scan, siteName, siteUrl });
+    downloadBlob(json, `${filenameBase}.json`, 'application/json');
+  };
+
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600 bg-green-50 border-green-200';
     if (score >= 60) return 'text-blue-600 bg-blue-50 border-blue-200';
@@ -551,17 +382,46 @@ export default function ScanDetailsModal({ scan, siteName, siteUrl, onClose }: S
           )}
         </div>
 
-        <div className="p-6 border-t border-gray-200 flex gap-3">
-          <Button
-            onClick={handlePrint}
-            className="flex-1 flex items-center justify-center gap-2"
-          >
-            <Printer className="w-4 h-4" />
-            Print Report
-          </Button>
-          <Button onClick={onClose} variant="outline" className="flex-1">
-            Close
-          </Button>
+        <div className="p-6 border-t border-gray-200">
+          <p className="text-sm font-medium text-gray-700 mb-2">Download report</p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={handleDownloadPDF}
+              disabled={generatingPdf}
+              className="flex items-center justify-center gap-2"
+            >
+              {generatingPdf ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Generating PDF...
+                </>
+              ) : (
+                <>
+                  <FileText className="w-4 h-4" />
+                  PDF
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={handleDownloadMarkdown}
+              variant="outline"
+              className="flex items-center justify-center gap-2"
+            >
+              <FileCode className="w-4 h-4" />
+              Markdown
+            </Button>
+            <Button
+              onClick={handleDownloadJSON}
+              variant="outline"
+              className="flex items-center justify-center gap-2"
+            >
+              <FileJson className="w-4 h-4" />
+              JSON
+            </Button>
+            <Button onClick={onClose} variant="outline" className="ml-auto">
+              Close
+            </Button>
+          </div>
         </div>
       </div>
     </div>
