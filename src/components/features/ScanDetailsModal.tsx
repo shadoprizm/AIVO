@@ -3,11 +3,10 @@ import { X, TrendingUp, AlertCircle, CheckCircle2, Info, FileText, Code, Message
 import { Scan, CategoryScores } from '../../types/database';
 import Button from '../ui/Button';
 import { downloadBlob, dateStamp, safeFilename } from '../../lib/downloadBlob';
-import { downloadPdfFromHtml } from '../../lib/pdfExport';
+import { downloadScanReportPdf } from '../../lib/pdfExport';
 import {
   categoryLabels,
   categoryDescriptions,
-  generateReportHTML,
   generateReportMarkdown,
   generateReportJSON,
 } from '../../lib/reportGenerators';
@@ -37,11 +36,7 @@ export default function ScanDetailsModal({ scan, siteName, siteUrl, onClose }: S
     if (!scan.analysis_json || generatingPdf) return;
     setGeneratingPdf(true);
     try {
-      const html = generateReportHTML({ scan, siteName, siteUrl });
-      if (!html.trim()) {
-        throw new Error('Report HTML was empty.');
-      }
-      await downloadPdfFromHtml(html, `${filenameBase}.pdf`);
+      await downloadScanReportPdf({ scan, siteName, siteUrl }, `${filenameBase}.pdf`);
     } catch (err) {
       console.error('PDF generation failed:', err);
       alert('Failed to generate PDF. Please try again.');
