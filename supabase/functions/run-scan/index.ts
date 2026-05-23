@@ -1,11 +1,9 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { getCorsHeaders } from '../_shared/cors.ts';
+import { checkRateLimit, getClientIp, rateLimitHeaders } from '../_shared/rate-limit.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+const RATE_LIMIT_PER_MINUTE = 10;
 
 interface RequestBody {
   siteId: string;
@@ -256,6 +254,8 @@ function sanitizeFaqRecommendations(
 }
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 200,
@@ -279,6 +279,22 @@ Deno.serve(async (req: Request) => {
 
     if (authError || !user) {
       throw new Error('Unauthorized');
+    }
+
+    const clientIp = getClientIp(req);
+    const ipLimit = await checkRateLimit(supabase, clientIp, 'run-scan', RATE_LIMIT_PER_MINUTE, 60);
+    if (!ipLimit.allowed) {
+      return new Response(
+        JSON.stringify({ error: 'Too many requests. Please slow down and try again shortly.' }),
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            ...rateLimitHeaders(ipLimit),
+            'Content-Type': 'application/json',
+          },
+        },
+      );
     }
 
     const { siteId }: RequestBody = await req.json();
