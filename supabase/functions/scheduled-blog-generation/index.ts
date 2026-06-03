@@ -13,14 +13,16 @@ Deno.serve(async (req: Request) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
     const generateBlogUrl = `${supabaseUrl}/functions/v1/generate-blog`;
 
+    // Authenticate the internal call with the service role key so generate-blog
+    // recognises it as a trusted cron invocation (not a public user request).
     const response = await fetch(generateBlogUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Authorization': `Bearer ${serviceRoleKey}`,
         'Content-Type': 'application/json',
       },
     });

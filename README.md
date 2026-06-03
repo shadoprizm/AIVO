@@ -199,10 +199,9 @@ Create a `.env` in the project root (it's gitignored):
 # Frontend (Vite) — these are PUBLIC by design, baked into the client bundle
 VITE_SUPABASE_URL=https://<your-project-ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<your-anon-key>
-VITE_ADMIN_EMAILS=you@example.com           # comma-separated, gates admin UI
 ```
 
-> ⚠️ Anything prefixed `VITE_` is embedded in the public JS bundle. **Never** put a service-role key or a secret API key here. Secret keys belong in the Edge Function environment below.
+> ⚠️ Anything prefixed `VITE_` is embedded in the public JS bundle. **Never** put a service-role key or a secret API key here. Secret keys belong in the Edge Function environment below. Admin status is **not** a client value — it's read from the `admin_users` table at runtime.
 
 Set **Edge Function** secrets in Supabase (Dashboard → Edge Functions → Secrets, or `supabase secrets set`):
 
@@ -213,9 +212,11 @@ SUPABASE_ANON_KEY=<anon-key>
 OPENAI_API_KEY=sk-...                          # required for AI analysis
 OPENAI_MODEL=gpt-4o                            # optional, blog default
 OPENAI_API_URL=https://api.openai.com/v1/chat/completions   # optional
-ADMIN_EMAILS=you@example.com                   # server-side admin allowlist
-PEXELS_API_KEY=...                             # optional, blog cover images
+PEXELS_API_KEY=...                             # optional, blog + admin cover images (server-side)
+ADMIN_EMAILS=you@example.com                   # optional server-side fallback only
 ```
+
+> Admin access is governed by the `admin_users` table (see [Quick Start step 5](#5-grant-yourself-admin)). `ADMIN_EMAILS` is an optional server-side safety net and is never exposed to the browser.
 
 ### 3. Set up the database
 
@@ -232,9 +233,20 @@ supabase db push
 supabase functions deploy run-scan
 supabase functions deploy generate-blog
 supabase functions deploy scheduled-blog-generation
+supabase functions deploy search-image
 ```
 
-### 5. (Optional) Wire up the daily blog cron
+### 5. Grant yourself admin
+
+Admin rights live in the `admin_users` table. After applying migrations, grant your account in the Supabase SQL Editor (see [`scripts/grant-admin.sql`](scripts/grant-admin.sql)):
+
+```sql
+INSERT INTO admin_users (user_id)
+SELECT id FROM auth.users WHERE email = 'you@example.com'
+ON CONFLICT (user_id) DO NOTHING;
+```
+
+### 6. (Optional) Wire up the daily blog cron
 
 Run the helper SQL in the Supabase SQL Editor:
 
@@ -243,7 +255,7 @@ scripts/setup-blog-cron-secrets.sql   # stores cron secrets in Vault
 scripts/verify-blog-cron.sql          # verifies extensions, job, secrets
 ```
 
-### 6. Run it
+### 7. Run it
 
 ```bash
 npm run dev          # http://localhost:5173
@@ -272,9 +284,10 @@ The heart of the project is [`supabase/functions/run-scan/index.ts`](supabase/fu
 
 | Table | Purpose | Access |
 |-------|---------|--------|
+| `admin_users` | DB-backed admin registry (single source of truth for admin status) | RLS: a user can read only their own row; grants are service-role/SQL-only |
 | `sites` | User-registered websites (`name`, `url`, `last_scanned_at`) | RLS: owner-only CRUD |
 | `scans` | One row per analysis run (`status`, `overall_score`, `analysis_json`) | RLS: read own; writes via Edge Function (service role) |
-| `blog_posts` | Generated & published articles | Public read of `published = true` |
+| `blog_posts` | Generated & published articles | Public read of `published = true`; **writes admin-only** (via `is_admin()`) |
 | `blog_generation_state` | Cron cursor — last topic index, counts | Backend-managed |
 | `used_blog_images` | Dedupe tracking for cover images | Backend-managed |
 | `rate_limits` | Sliding-window counters for Edge Functions | Backend-managed |
@@ -294,6 +307,7 @@ All user data is isolated with **Row Level Security** keyed on `auth.uid()`; sca
 Security is treated as a first-class concern and logged in [`SECURITY.md`](SECURITY.md):
 
 - **Row Level Security** on all user tables, keyed to `auth.uid()`.
+- **DB-backed admin model** — admin status lives in `admin_users`; a SECURITY DEFINER `is_admin()` helper gates all blog writes at the RLS layer (not just in the edge function), and the frontend reads admin status from the DB rather than a baked-in email list.
 - **Authenticated, ownership-checked Edge Functions** with per-IP and per-resource rate limiting ([`_shared/rate-limit.ts`](supabase/functions/_shared/rate-limit.ts)).
 - **CORS allowlist** restricted to production + localhost origins ([`_shared/cors.ts`](supabase/functions/_shared/cors.ts)).
 - **Hardened HTTP headers** via [`vercel.json`](vercel.json): HSTS (preload), a strict Content-Security-Policy (no `unsafe-eval`), `X-Frame-Options: DENY` + `frame-ancestors 'none'`, COOP/CORP `same-origin`, `nosniff`, Referrer-Policy, and a locked-down Permissions-Policy.

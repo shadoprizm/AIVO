@@ -239,41 +239,45 @@ export default function AdminBlog() {
   };
 
   const generateCoverImage = async () => {
-    const apiKey = import.meta.env.VITE_PEXELS_API_KEY;
-    if (!apiKey) {
-      setImageError('Add VITE_PEXELS_API_KEY to your .env to use the image generator.');
-      return;
-    }
-
     setImageLoading(true);
     setImageError('');
 
     const query = form.title || parseTags(form.tags).join(' ') || 'AI visibility';
-    const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&orientation=landscape&per_page=40`;
 
     try {
-      const response = await fetch(url, {
-        headers: {
-          Authorization: apiKey,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch images from Pexels');
+      // Image search runs server-side (search-image Edge Function) so the
+      // Pexels API key never ships to the browser.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
       }
 
-      const data = await response.json();
-      const photos = data.photos || [];
-      if (!photos.length) {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/search-image`;
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch images');
+      }
+
+      const images = data.images || [];
+      if (!images.length) {
         throw new Error('No images found for that topic');
       }
 
-      const choice = photos[Math.floor(Math.random() * photos.length)];
+      const choice = images[Math.floor(Math.random() * images.length)];
       setForm(prev => ({
         ...prev,
-        coverImageUrl: choice.src?.large2x || choice.src?.large || choice.src?.original || '',
+        coverImageUrl: choice.url || '',
         imageAuthor: choice.photographer || '',
-        imageAuthorUrl: choice.photographer_url || '',
+        imageAuthorUrl: choice.photographerUrl || '',
         imageSource: 'Pexels',
       }));
     } catch (error) {
