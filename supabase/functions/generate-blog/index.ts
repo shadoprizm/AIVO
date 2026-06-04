@@ -715,18 +715,35 @@ Deno.serve(async (req: Request) => {
     }
 
     const token = authHeader.replace("Bearer ", "").trim();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser(token);
 
-    if (authError || !user) {
-      throw new Error("Unauthorized");
-    }
+    // Internal/cron calls authenticate with the service role key (see
+    // scheduled-blog-generation). User calls must come from an admin.
+    const isInternalCall = token === supabaseServiceKey;
 
-    if (adminEmails.length > 0) {
+    if (!isInternalCall) {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser(token);
+
+      if (authError || !user) {
+        throw new Error("Unauthorized");
+      }
+
+      // Admin status is sourced from the admin_users table. ADMIN_EMAILS is
+      // kept only as an optional server-side fallback (never shipped to the
+      // browser) so an operator can't be locked out.
+      const { data: adminRow } = await supabase
+        .from("admin_users")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
       const email = user.email?.toLowerCase();
-      if (!email || !adminEmails.includes(email)) {
+      const emailAllowed =
+        adminEmails.length > 0 && !!email && adminEmails.includes(email);
+
+      if (!adminRow && !emailAllowed) {
         throw new Error("Only administrators can generate blog posts");
       }
     }
