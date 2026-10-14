@@ -171,16 +171,23 @@ async function authenticate(req: Request, supabase: SupabaseClient): Promise<Adm
     return jsonResponse({ error: 'Authentication required' }, 401);
   }
 
-  if (adminEmails.length === 0) {
-    return jsonResponse({ error: 'Admin access is not configured' }, 403);
+  const email = user.email?.toLowerCase();
+  const emailAllowed = Boolean(email && adminEmails.includes(email));
+  const { data: adminRow, error: adminError } = await supabase
+    .from('admin_users')
+    .select('user_id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (adminError && !emailAllowed) {
+    return jsonResponse({ error: 'Admin access lookup failed' }, 500);
   }
 
-  const email = user.email?.toLowerCase();
-  if (!email || !adminEmails.includes(email)) {
+  if (!adminRow && !emailAllowed) {
     return jsonResponse({ error: 'Administrator access required' }, 403);
   }
 
-  return { id: user.id, email };
+  return { id: user.id, email: email ?? user.id };
 }
 
 async function audit(

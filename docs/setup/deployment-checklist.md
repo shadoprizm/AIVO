@@ -9,7 +9,6 @@ VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 VITE_SITE_URL=https://aivoinsights.com
 VITE_GA_MEASUREMENT_ID= (optional)
-VITE_ADMIN_EMAILS=
 ```
 
 ## Supabase Edge Function Secrets
@@ -26,7 +25,9 @@ ADMIN_EMAILS=
 ## Supabase Configuration
 
 - [ ] Apply all migrations in `supabase/migrations`.
+- [ ] Grant admins through `admin_users`, for example: `INSERT INTO admin_users (user_id) SELECT id FROM auth.users WHERE email = 'admin@example.com' ON CONFLICT (user_id) DO NOTHING;`.
 - [ ] Deploy Edge Functions: `public-scan`, `public-report`, `claim-scan`, `scan-feedback`, `run-scan`, `generate-blog`, and `admin-control`.
+- [ ] Preserve `admin-control`'s `verify_jwt = false` setting from `supabase/config.toml`: its handler authenticates tokens with `auth.getUser()` and checks administrator access before running any action. Verify a fresh password login can load the admin overview, while non-admin users receive 403 and missing/invalid tokens receive 401.
 - [ ] In Supabase Dashboard -> Authentication -> URL Configuration, set Site URL to `https://aivoinsights.com`.
 - [ ] Add production redirect URLs in Supabase URL Configuration: `https://aivoinsights.com/dashboard`, `https://aivoinsights.com/report/**`, `https://aivoinsights.com/sites/**`, `https://aivoinsights.com/admin`, and `https://aivoinsights.com/admin/**`.
 - [ ] Add local redirect URL in Supabase URL Configuration: `http://localhost:5173/**`.

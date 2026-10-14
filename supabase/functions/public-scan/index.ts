@@ -1,39 +1,8 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
-import { createClient } from 'npm:@supabase/supabase-js@2';
-import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
-import { analyzeWithDeepSeek, getDeepSeekTimeoutMs } from '../_shared/deepseek-analyzer.ts';
-import { runQueryBattery, summarizeGenerativeAudit } from '../_shared/answer-tests.ts';
-import { discoverCompetitors } from '../_shared/competitor-discovery.ts';
-import { runCompetitorTeardown } from '../_shared/competitor-teardown.ts';
-import { buildEntityMap } from '../_shared/entity-map.ts';
-import { findContentGaps } from '../_shared/content-gap.ts';
-import { buildContentBlueprint } from '../_shared/content-blueprint.ts';
-import {
-  computeStrategicReadinessScore,
-  deriveCompetitivePresenceScore,
-  summarizeStrategicReadiness,
-  synthesizeStrategicRecommendations,
-  weightedOverallScore,
-} from '../_shared/strategic-synthesis.ts';
-import { discoverSite } from '../_shared/site-discovery.ts';
-import { runTechnicalChecks } from '../_shared/technical-checks.ts';
+import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { isPrivateIp, isValidUrl, normalizeUrl } from '../_shared/url.ts';
-import {
-  AIVOScoreV2,
-  BlueprintItem,
-  CompetitorBreakdown,
-  CompetitorCandidate,
-  ContentGap,
-  EntityMap,
-  GenerativeAudit,
-  QueryBatteryItem,
-  Recommendation,
-  ScanAnalysis,
-  ScanInput,
-  StrategicFindings,
-  TechnicalCheckResult,
-} from '../_shared/analysis-types.ts';
-
+import { runReadinessScan } from '../_shared/readiness-scan.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -145,26 +114,6 @@ function domainFromUrl(url: string): string {
   return new URL(url).hostname.toLowerCase().replace(/^www\./, '');
 }
 
-function technicalOnlyAnalysis(technical: TechnicalCheckResult): ScanAnalysis {
-  return {
-    scores: technical.scores,
-    recommendations: technical.recommendations,
-    summary: 'Technical checks completed. AI analysis is temporarily unavailable.',
-  };
-}
-
-function toV2Score(analysis: ScanAnalysis): AIVOScoreV2 {
-  return {
-    crawl_access: analysis.scores.crawl_access,
-    entity_clarity: analysis.scores.entity_clarity,
-    answer_readiness: analysis.scores.answer_readiness,
-    citation_likelihood: analysis.scores.citation_likelihood,
-    trust_evidence: analysis.scores.trust_evidence,
-    competitive_presence: analysis.scores.competitive_presence,
-    overall: analysis.scores.overall,
-  };
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -174,6 +123,8 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: 'Method not allowed' }, 405);
   }
 
+  let activeScanId: string | undefined;
+  let database: SupabaseClient | undefined;
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -206,6 +157,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
+    database = supabase;
     const domain = domainFromUrl(normalizedUrl);
     const ip = getClientIp(req);
     const userAgent = req.headers.get('user-agent') ?? 'unknown';
@@ -280,143 +232,18 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: 'Failed to create scan record.' }, 500);
     }
 
-    const discoveredSite = await discoverSite(normalizedUrl, 6);
-    const technical = runTechnicalChecks(discoveredSite);
-    const scanInput: ScanInput = { site: discoveredSite, technical };
-    const llmAnalysis = await analyzeWithDeepSeek(scanInput, getDeepSeekTimeoutMs('anonymous'));
-    const analysis = llmAnalysis ?? technicalOnlyAnalysis(technical);
-    const publicStatus: PublicScanResponse['status'] = llmAnalysis ? 'complete' : 'partial';
-    const message = publicStatus === 'partial'
-      ? 'AI analysis processing — rescan in 60 seconds for full report'
-      : undefined;
-
-    const category = llmAnalysis?.category_inference;
-    const moduleTimings: Record<string, number> = {};
-
-    async function timed<T>(name: string, fn: () => Promise<T>): Promise<T> {
-      const start = Date.now();
-      try {
-        return await fn();
-      } finally {
-        moduleTimings[name] = Date.now() - start;
-      }
-    }
-
-    let competitors: CompetitorCandidate[] = [];
-    let competitorTeardown: CompetitorBreakdown[] = [];
-    let queryBattery: QueryBatteryItem[] = [];
-    let generativeAudit: GenerativeAudit | undefined;
-    let entityMap: EntityMap | null = null;
-    let contentGaps: ContentGap[] = [];
-    let blueprint: BlueprintItem[] = [];
-
-    if (llmAnalysis && category) {
-      competitors = await timed('competitor_discovery', () =>
-        discoverCompetitors(discoveredSite, category, { timeoutMs: 10_000, max: 6 })
-      );
-
-      const [batteryResult, teardownResult] = await Promise.all([
-        timed('query_battery', () =>
-          runQueryBattery(discoveredSite, category, competitors, { timeoutMs: 20_000 })
-        ),
-        timed('competitor_teardown', () =>
-          runCompetitorTeardown(competitors, { timeoutMs: 15_000, max: 5 })
-        ),
-      ]);
-      queryBattery = batteryResult;
-      competitorTeardown = teardownResult;
-      generativeAudit = summarizeGenerativeAudit(queryBattery);
-
-      const [mapResult, gapResult] = await Promise.all([
-        timed('entity_map', () =>
-          buildEntityMap(discoveredSite, category, queryBattery, competitorTeardown, { timeoutMs: 15_000 })
-        ),
-        timed('content_gap', () =>
-          findContentGaps(discoveredSite, category, competitorTeardown, { timeoutMs: 20_000 })
-        ),
-      ]);
-      entityMap = mapResult;
-      contentGaps = gapResult;
-
-      blueprint = await timed('content_blueprint', () =>
-        buildContentBlueprint(entityMap, contentGaps, competitorTeardown, category, { timeoutMs: 20_000 })
-      );
-    } else if (llmAnalysis) {
-      // No category inference — still run a minimal query battery for back-compat answer tests.
-      queryBattery = await timed('query_battery_fallback', () =>
-        runQueryBattery(discoveredSite, undefined, [], { timeoutMs: 15_000 })
-      );
-      generativeAudit = summarizeGenerativeAudit(queryBattery);
-    }
-
-    const strategicFindings: StrategicFindings = {
-      category_inference: category,
-      competitors,
-      competitor_teardown: competitorTeardown,
-      generative_audit: generativeAudit,
-      entity_map: entityMap ?? undefined,
-      content_gaps: contentGaps,
-      content_blueprint: blueprint,
-    };
-    strategicFindings.strategic_readiness_score = computeStrategicReadinessScore(strategicFindings);
-    strategicFindings.strategic_readiness_summary = summarizeStrategicReadiness(strategicFindings);
-
-    const strategicRecs = synthesizeStrategicRecommendations(
-      entityMap,
-      contentGaps,
-      blueprint,
-      competitorTeardown,
-      generativeAudit,
-    );
-    const combinedRecommendations: Recommendation[] = [
-      ...analysis.recommendations,
-      ...strategicRecs,
-    ];
-
-    const competitivePresenceFromAudit = deriveCompetitivePresenceScore(generativeAudit);
-    if (competitivePresenceFromAudit !== null) {
-      const nextScores = {
-        ...analysis.scores,
-        competitive_presence: competitivePresenceFromAudit,
-      };
-      analysis.scores = {
-        ...nextScores,
-        overall: weightedOverallScore(nextScores),
-      };
-    }
-
-    const v2Score = toV2Score({ ...analysis });
-    const v2Evidence = {
-      analysis_status: publicStatus,
-      message,
-      summary: analysis.summary,
-      crawl: discoveredSite.evidence,
-      technical,
-      recommendations: combinedRecommendations,
-      answer_tests: queryBattery,
-      query_battery: queryBattery,
-      generative_audit: generativeAudit,
-      category_inference: category,
-      competitors,
-      competitor_teardown: competitorTeardown,
-      entity_map: entityMap,
-      content_gaps: contentGaps,
-      content_blueprint: blueprint,
-      strategic_readiness_score: strategicFindings.strategic_readiness_score,
-      strategic_readiness_summary: strategicFindings.strategic_readiness_summary,
-      module_timings_ms: moduleTimings,
-      ai_fix_prompt_markdown: analysis.ai_fix_prompt_markdown,
-      ai_fix_prompt_structured: analysis.ai_fix_prompt_structured,
-      customer_summary: analysis.customer_summary,
-    };
-
+    activeScanId = scan.id;
+    const result = await runReadinessScan(normalizedUrl);
+    const publicStatus: PublicScanResponse['status'] = result.v2_evidence.analysis_status === 'complete' ? 'complete' : 'partial';
+    const message = result.v2_evidence.message;
     const { error: updateError } = await supabase
       .from('scans')
       .update({
         status: 'completed',
-        overall_score: v2Score.overall,
-        v2_score: v2Score,
-        v2_evidence: v2Evidence,
+        overall_score: result.overall_score,
+        analysis_json: result.analysis_json,
+        v2_score: result.v2_score,
+        v2_evidence: result.v2_evidence,
         completed_at: new Date().toISOString(),
       })
       .eq('id', scan.id);
@@ -436,6 +263,7 @@ Deno.serve(async (req: Request) => {
 
     return jsonResponse(response);
   } catch (error) {
+    if (database && activeScanId) await database.from('scans').update({ status: 'failed', completed_at: new Date().toISOString() }).eq('id', activeScanId);
     return jsonResponse({
       error: error instanceof Error ? error.message : 'Unable to complete scan.',
     }, 500);

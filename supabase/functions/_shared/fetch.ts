@@ -4,27 +4,28 @@ import { isPrivateIp } from './url.ts';
 const USER_AGENT = 'AIVO-Insights-Bot/1.0 (+https://aivoinsights.com/bot)';
 const MAX_REDIRECTS = 3;
 
-async function readLimitedBody(response: Response, maxBytes: number): Promise<Uint8Array> {
+async function readLimitedBody(response: Response, maxBytes: number): Promise<{ body: Uint8Array; truncated: boolean }> {
   if (!response.body) {
     const buffer = await response.arrayBuffer();
-    return new Uint8Array(buffer).slice(0, maxBytes);
+    return { body: new Uint8Array(buffer).slice(0, maxBytes), truncated: buffer.byteLength > maxBytes };
   }
 
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
+  let truncated = false;
 
   try {
-    while (total < maxBytes) {
+    while (total <= maxBytes) {
       const { done, value } = await reader.read();
       if (done || !value) break;
 
-      const remaining = maxBytes - total;
+      const remaining = maxBytes + 1 - total;
       const nextChunk = value.length > remaining ? value.slice(0, remaining) : value;
       chunks.push(nextChunk);
       total += nextChunk.length;
 
-      if (value.length > remaining) break;
+      if (total > maxBytes) { truncated = true; await reader.cancel(); break; }
     }
   } finally {
     reader.releaseLock();
@@ -37,7 +38,7 @@ async function readLimitedBody(response: Response, maxBytes: number): Promise<Ui
     offset += chunk.length;
   }
 
-  return body;
+  return { body: body.slice(0, maxBytes), truncated };
 }
 
 export async function fetchWithTimeout(
@@ -57,6 +58,8 @@ export async function fetchWithTimeout(
     let response: Response;
 
     while (true) {
+      const target = new URL(currentUrl);
+      if (target.protocol !== 'https:' || isPrivateIp(target.hostname) || (target.port && target.port !== '443')) throw new Error('Blocked unsafe fetch target');
       response = await fetch(currentUrl, {
         ...options,
         redirect: 'manual',
@@ -82,8 +85,12 @@ export async function fetchWithTimeout(
       redirectCount += 1;
     }
 
-    const limitedBody = await readLimitedBody(response, maxBytes);
+    const captured = await readLimitedBody(response, maxBytes);
+    const limitedBody = captured.body;
     const responseHeaders = new Headers(response.headers);
+    responseHeaders.set('x-aivo-truncated', String(captured.truncated));
+    responseHeaders.delete('content-length');
+    responseHeaders.delete('content-encoding');
     responseHeaders.set('x-aivo-bytes-read', String(limitedBody.length));
     responseHeaders.set('x-aivo-redirect-count', String(redirectCount));
 

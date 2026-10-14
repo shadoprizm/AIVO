@@ -272,6 +272,7 @@ export default function PublicReport() {
                 )}
               </section>
 
+              <p className="text-sm text-gray-700">Website readiness assessment. Actual AI mentions and citations were not tested. Performance, mobile usability and search indexing were not measured.</p>
               <ScoreSummary score={score} />
               {(strategicReadinessScore !== null || strategicReadinessSummary) && (
                 <section className="rounded-lg border border-blue-200 bg-blue-50 p-5">

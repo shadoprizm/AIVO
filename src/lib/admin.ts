@@ -160,6 +160,7 @@ async function adminRequest<T>(action: string, payload: Record<string, unknown> 
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
       Authorization: `Bearer ${session.access_token}`,
     },
     body: JSON.stringify({ action, payload }),
@@ -167,7 +168,10 @@ async function adminRequest<T>(action: string, payload: Record<string, unknown> 
 
   const body = await response.json().catch(() => ({}));
   if (!response.ok || body?.success === false) {
-    throw new Error(typeof body?.error === 'string' ? body.error : 'Admin action failed.');
+    const message = typeof body?.error === 'string' ? body.error
+      : typeof body?.message === 'string' ? body.message
+      : `Admin action failed (HTTP ${response.status}).`;
+    throw new Error(message);
   }
 
   return body as T;

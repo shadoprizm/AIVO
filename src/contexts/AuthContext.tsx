@@ -23,32 +23,42 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const adminEmails = String(import.meta.env.VITE_ADMIN_EMAILS || '')
-  .split(',')
-  .map((email: string) => email.trim().toLowerCase())
-  .filter(Boolean);
+async function checkIsAdmin(userId: string | undefined): Promise<boolean> {
+  if (!userId) return false;
+
+  const { data, error } = await supabase
+    .from('admin_users')
+    .select('user_id')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return Boolean(data);
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [adminAccess, setAdminAccess] = useState<{ userId: string; allowed: boolean } | null>(null);
 
   useEffect(() => {
     let mounted = true;
-    let initialSessionChecked = false;
+    let authEventReceived = false;
+
+    const applySession = (nextSession: Session | null) => {
+      if (!mounted) return;
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+      setLoading(false);
+    };
 
     // Set up the auth state listener
     // This Supabase API property name is unrelated to paid-plan subscriptions.
     const { data: { subscription: authListener } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        if (mounted) {
-          // Only update state after initial session check is complete
-          // This prevents the listener from setting null before storage is read
-          if (initialSessionChecked) {
-            setSession(session);
-            setUser(session?.user ?? null);
-          }
-        }
+        authEventReceived = true;
+        applySession(session);
         if (event === 'SIGNED_IN') {
           const provider = session?.user.app_metadata.provider;
           if (provider === 'google' || provider === 'github') {
@@ -61,12 +71,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Get the initial session from storage
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (mounted) {
-        initialSessionChecked = true;
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
+      // A newer auth event takes precedence over this initial storage read.
+      if (!authEventReceived) applySession(session);
+    }).catch((error) => {
+      console.error('Unable to restore session', error);
+      if (!authEventReceived) applySession(null);
     });
 
     return () => {
@@ -74,6 +83,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authListener.unsubscribe();
     };
   }, []);
+
+  const userId = user?.id;
+
+  useEffect(() => {
+    let cancelled = false;
+    setAdminAccess(null);
+    if (!userId) return;
+
+    // Run outside onAuthStateChange so database requests cannot hold the auth lock.
+    void checkIsAdmin(userId).then((allowed) => {
+      if (!cancelled) setAdminAccess({ userId, allowed });
+    }).catch((error) => {
+      console.error('Unable to check administrator access', error);
+      if (!cancelled) setAdminAccess({ userId, allowed: false });
+    });
+
+    return () => { cancelled = true; };
+  }, [userId]);
 
   const signup = async (email: string, password: string, fullName: string) => {
     const { data, error } = await supabase.auth.signUp({
@@ -123,13 +150,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
-  const isAdmin = user?.email ? adminEmails.includes(user.email.toLowerCase()) : false;
-
   const value = {
     user,
     session,
-    loading,
-    isAdmin,
+    // A signed-in user is not ready for route checks until their own lookup finishes.
+    loading: loading || Boolean(userId && adminAccess?.userId !== userId),
+    isAdmin: Boolean(userId && adminAccess?.userId === userId && adminAccess.allowed),
     signup,
     login,
     signInWithGoogle,

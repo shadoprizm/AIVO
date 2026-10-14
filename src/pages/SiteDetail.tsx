@@ -174,6 +174,8 @@ export default function SiteDetail() {
       scan.status === 'completed' && scan.overall_score !== null
   );
 
+  const trendScans = completedScans.filter(scan => scan.analysis_json?.analysis_version === completedScans[0]?.analysis_json?.analysis_version && scan.v2_evidence?.analysis_status !== 'partial');
+
   return (
     <DashboardLayout>
       <Breadcrumbs
@@ -222,9 +224,9 @@ export default function SiteDetail() {
           </Button>
         </div>
 
-        {completedScans.length >= 2 && (
+        {trendScans.length >= 2 && (
           <div className="mb-6">
-            <ScoreTrendChart scans={completedScans} />
+            <ScoreTrendChart scans={trendScans} />
           </div>
         )}
 

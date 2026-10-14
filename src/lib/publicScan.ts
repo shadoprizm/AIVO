@@ -8,8 +8,15 @@ export interface PublicScanResult {
   message?: string;
 }
 
+export function publicRequestHeaders(): Record<string, string> {
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  if (!key) throw new Error('Scan service is not configured.');
+  return { 'Content-Type': 'application/json', apikey: key, Authorization: `Bearer ${key}` };
+}
+
 interface PublicScanErrorBody {
   error?: string;
+  message?: string;
 }
 
 function getFunctionsBaseUrl(): string {
@@ -30,9 +37,7 @@ export async function startPublicScan(url: string): Promise<PublicScanResult> {
   try {
     response = await fetch(`${getFunctionsBaseUrl()}/public-scan`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: publicRequestHeaders(),
       body: JSON.stringify({ url: trimmedUrl }),
     });
   } catch {
@@ -41,7 +46,7 @@ export async function startPublicScan(url: string): Promise<PublicScanResult> {
 
   const body = await response.json().catch((): PublicScanErrorBody => ({}));
   if (!response.ok) {
-    const message = typeof body.error === 'string' ? body.error : 'Unable to start scan. Try again in a minute.';
+    const message = typeof body.error === 'string' ? body.error : typeof body.message === 'string' ? body.message : 'Unable to start scan. Try again in a minute.';
     throw new Error(message);
   }
 
@@ -57,9 +62,7 @@ export async function fetchPublicReport(token: string): Promise<Record<string, u
   try {
     response = await fetch(`${getFunctionsBaseUrl()}/public-report`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: publicRequestHeaders(),
       body: JSON.stringify({ token }),
     });
   } catch {
@@ -68,7 +71,7 @@ export async function fetchPublicReport(token: string): Promise<Record<string, u
 
   const body = await response.json().catch((): PublicScanErrorBody => ({}));
   if (!response.ok) {
-    const message = typeof body.error === 'string' ? body.error : 'Unable to load report.';
+    const message = typeof body.error === 'string' ? body.error : typeof body.message === 'string' ? body.message : 'Unable to load report.';
     throw new Error(message);
   }
 
@@ -92,7 +95,7 @@ export async function claimPublicScan(publicToken: string): Promise<{ success: b
 
   const body = await response.json().catch((): PublicScanErrorBody => ({}));
   if (!response.ok) {
-    const message = typeof body.error === 'string' ? body.error : 'Unable to save report.';
+    const message = typeof body.error === 'string' ? body.error : typeof body.message === 'string' ? body.message : 'Unable to save report.';
     throw new Error(message);
   }
 
