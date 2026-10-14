@@ -60,9 +60,12 @@ export async function fetchPublicReport(token: string): Promise<Record<string, u
 
   let response: Response;
   try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers = publicRequestHeaders();
+    if (session) headers.Authorization = `Bearer ${session.access_token}`;
     response = await fetch(`${getFunctionsBaseUrl()}/public-report`, {
       method: 'POST',
-      headers: publicRequestHeaders(),
+      headers,
       body: JSON.stringify({ token }),
     });
   } catch {

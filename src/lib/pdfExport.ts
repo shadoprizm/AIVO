@@ -212,7 +212,7 @@ function drawHero(w: PdfWriter, ctx: ReportContext): void {
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(10.5);
   w.setText(BODY_TEXT);
-  const intro = `This report measures how AI assistants — ChatGPT, Claude, Gemini, and Perplexity — read, understand, and recommend ${ctx.siteName}. The overall score reflects six dimensions of AI visibility, broken down on the following pages with concrete recommendations.`;
+  const intro = ctx.scan.analysis_json?.analysis_version === '3.0-readiness' ? `This report assesses website readiness from captured public pages. Actual AI mentions, citations, speed, mobile usability and search indexing were not tested. Unassessed categories are excluded from the overall score. Compare rescans only with the same analysis version.` : `This report measures how AI assistants — ChatGPT, Claude, Gemini, and Perplexity — read, understand, and recommend ${ctx.siteName}. The overall score reflects six dimensions of AI visibility, broken down on the following pages with concrete recommendations.`;
   const lines = pdf.splitTextToSize(intro, w.contentWidth) as string[];
   lines.forEach((line) => {
     pdf.text(line, PAGE.marginX, w.y + 9);
@@ -382,7 +382,7 @@ function drawCategoryBreakdown(w: PdfWriter, ctx: ReportContext): void {
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(9.5);
       w.setText(ACCENT_BLUE);
-      pdf.text('Path to 100', cardX + 14, textY);
+      pdf.text('Suggested next step', cardX + 14, textY);
       textY += 14;
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(10);
