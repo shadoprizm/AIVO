@@ -63,11 +63,16 @@ Deno.serve(async (req: Request) => {
       .from('sites')
       .select('*')
       .eq('id', siteId)
-      .eq('user_id', user.id)
       .maybeSingle();
 
-    if (siteError || !site) {
-      throw new Error('Site not found or unauthorized');
+    if (siteError || !site) throw new Error('Site not found or unauthorized');
+    if (site.user_id !== user.id) {
+      // A saved public report grants scan access only to its verified claimant.
+      // Never infer permission for a site owned by another account.
+      if (site.user_id !== null) throw new Error('Site not found or unauthorized');
+      const { data: ownedScan, error: ownershipError } = await supabase.from('scans')
+        .select('id').eq('site_id', siteId).eq('user_id', user.id).limit(1).maybeSingle();
+      if (ownershipError || !ownedScan) throw new Error('Site not found or unauthorized');
     }
 
     const recentScansResult = await supabase
@@ -86,6 +91,9 @@ Deno.serve(async (req: Request) => {
       .from('scans')
       .insert({
         site_id: siteId,
+        user_id: user.id,
+        source: 'dashboard',
+        visibility: 'private',
         status: 'processing',
       })
       .select()
