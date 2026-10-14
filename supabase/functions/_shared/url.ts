@@ -35,7 +35,7 @@ export function isValidUrl(url: string): boolean {
 export function isPrivateIp(hostname: string): boolean {
   const normalized = hostname.trim().toLowerCase().replace(/^\[|\]$/g, '');
 
-  if (normalized === 'localhost' || normalized === '::1' || normalized === '0:0:0:0:0:0:0:1') {
+  if (normalized === 'localhost' || normalized.endsWith('.localhost') || normalized.endsWith('.local') || normalized === '::' || normalized.startsWith('fc') && normalized.includes(':') || normalized.startsWith('fd') && normalized.includes(':') || normalized.startsWith('fe80:') || normalized.startsWith('::ffff:') || normalized === '::1' || normalized === '0:0:0:0:0:0:0:1') {
     return true;
   }
 
@@ -44,6 +44,7 @@ export function isPrivateIp(hostname: string): boolean {
 
   const [first, second] = ipv4;
   return (
+    first === 0 || first >= 224 || (first === 169 && second === 254) || (first === 100 && second >= 64 && second <= 127) ||
     first === 127 ||
     first === 10 ||
     (first === 172 && second >= 16 && second <= 31) ||

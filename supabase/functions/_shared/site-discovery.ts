@@ -2,10 +2,10 @@ import { fetchWithTimeout } from './fetch.ts';
 import { DiscoveredSite, FetchedResource, SystemFile } from './analysis-types.ts';
 
 const PAGE_TIMEOUT_MS = 8000;
-const MAX_BYTES = 100_000;
+const MAX_BYTES = 1_000_000;
 
-async function fetchTextResource(url: string): Promise<FetchedResource> {
-  const response = await fetchWithTimeout(url, { method: 'GET' }, PAGE_TIMEOUT_MS, MAX_BYTES);
+async function fetchTextResource(url: string, maxBytes = MAX_BYTES): Promise<FetchedResource> {
+  const response = await fetchWithTimeout(url, { method: 'GET' }, PAGE_TIMEOUT_MS, maxBytes);
   const body = await response.text();
 
   return {
@@ -14,6 +14,7 @@ async function fetchTextResource(url: string): Promise<FetchedResource> {
     bytes: Number(response.headers.get('x-aivo-bytes-read') ?? body.length),
     contentType: response.headers.get('content-type') ?? '',
     body,
+    truncated: response.headers.get('x-aivo-truncated') === 'true',
   };
 }
 
@@ -87,7 +88,7 @@ function detectPages(urls: string[]) {
 async function fetchSystemFile(baseUrl: URL, type: SystemFile['type'], path: string): Promise<SystemFile | null> {
   const url = new URL(path, baseUrl).toString();
   try {
-    const resource = await fetchTextResource(url);
+    const resource = await fetchTextResource(url, 100_000);
     if (resource.status >= 400) return null;
     return {
       type,
@@ -116,16 +117,8 @@ export async function discoverSite(normalizedUrl: string, maxHtmlPages = 6): Pro
     });
   }
 
-  for (const [type, path] of [
-    ['robots', '/robots.txt'],
-    ['llms', '/llms.txt'],
-    ['sitemap', '/sitemap.xml'],
-  ] as const) {
-    const systemFile = await fetchSystemFile(baseUrl, type, path);
-    if (systemFile) {
-      systemFiles.push(systemFile);
-    }
-  }
+  const files = await Promise.all(([['robots', '/robots.txt'], ['llms', '/llms.txt'], ['sitemap', '/sitemap.xml']] as const).map(([type, path]) => fetchSystemFile(baseUrl, type, path)));
+  systemFiles.push(...files.filter((f): f is SystemFile => f !== null));
 
   const sitemap = systemFiles.find((file) => file.type === 'sitemap');
   const sitemapUrls = sitemap ? parseSitemapUrls(sitemap.content) : [];
@@ -141,36 +134,28 @@ export async function discoverSite(normalizedUrl: string, maxHtmlPages = 6): Pro
     });
 
   const detectedPages = detectPages(candidateUrls);
-  const pageUrls = candidateUrls.slice(0, maxHtmlPages);
+  const priority = [...detectedPages.product_or_service, ...detectedPages.about, ...detectedPages.faq, ...detectedPages.contact];
+  const pageUrls = Array.from(new Set([baseUrl.toString(), ...priority, ...candidateUrls])).slice(0, maxHtmlPages);
   const pages: FetchedResource[] = [];
 
-  for (const pageUrl of pageUrls) {
-    if (homepage && pageUrl === homepage.url) {
-      pages.push(homepage);
-      continue;
-    }
-
+  const captures = await Promise.all(pageUrls.map(async (pageUrl) => {
     try {
-      const page = await fetchTextResource(pageUrl);
-      if ((page.contentType.includes('text/html') || page.body.includes('<html')) && page.status < 400) {
-        pages.push(page);
-      }
+      const page = homepage && pageUrl === homepage.url ? homepage : await fetchTextResource(pageUrl);
+      if (page.status < 200 || page.status >= 300 || !(page.contentType.includes('text/html') || page.body.includes('<html'))) throw new Error(`Page unavailable or not HTML (HTTP ${page.status})`);
+      if (page.truncated) crawlWarnings.push(`${pageUrl}: HTML capture exceeded ${MAX_BYTES} bytes; coverage is incomplete.`);
+      return page;
     } catch (error) {
-      failedPages.push({
-        url: pageUrl,
-        error: error instanceof Error ? error.message : 'Failed to fetch page',
-      });
+      failedPages.push({ url: pageUrl, error: error instanceof Error ? error.message : 'Failed to fetch page' });
+      return null;
     }
-  }
+  }));
+  pages.push(...captures.filter((p): p is FetchedResource => p !== null));
 
   if (!systemFiles.some((file) => file.type === 'robots')) {
     crawlWarnings.push('robots.txt was not found.');
   }
   if (!systemFiles.some((file) => file.type === 'sitemap')) {
     crawlWarnings.push('sitemap.xml was not found.');
-  }
-  if (!systemFiles.some((file) => file.type === 'llms')) {
-    crawlWarnings.push('llms.txt was not found.');
   }
 
   return {

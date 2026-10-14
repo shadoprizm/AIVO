@@ -106,6 +106,7 @@ export default function ScanDetailsModal({ scan, siteName, siteUrl, onClose }: S
     const weaknesses: string[] = [];
 
     Object.entries(analysis_json.category_scores).forEach(([key, score]) => {
+      if (scan.v2_score && key in scan.v2_score && scan.v2_score[key] === null) return;
       const label = categoryLabels[key as keyof CategoryScores];
       if (score >= 70) {
         strengths.push(label);
@@ -158,6 +159,7 @@ export default function ScanDetailsModal({ scan, siteName, siteUrl, onClose }: S
         </div>
 
         <div className="overflow-y-auto flex-grow p-6">
+          <p className="mb-4 text-sm text-gray-700">Website readiness assessment. Actual AI mentions, citations, speed and mobile usability were not tested. Analysis version: {analysis_json.analysis_version}.</p>
           <section className="mb-8 bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border-2 border-blue-200">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Summary</h3>
 
@@ -200,6 +202,7 @@ export default function ScanDetailsModal({ scan, siteName, siteUrl, onClose }: S
             </h3>
             <div className="space-y-4">
               {Object.entries(analysis_json.category_scores).map(([key, score]) => {
+                const unassessed = Boolean(scan.v2_score && key in scan.v2_score && scan.v2_score[key] === null);
                 const Icon = categoryIcons[key as keyof CategoryScores];
                 const isStrength = score >= 70;
                 const isWeakness = score < 60;
@@ -238,13 +241,13 @@ export default function ScanDetailsModal({ scan, siteName, siteUrl, onClose }: S
                           )}
                           {feedback?.improvement_path && (
                             <p className="text-sm text-blue-800 mt-1">
-                              <span className="font-semibold">Path to 100:</span> {feedback.improvement_path}
+                              <span className="font-semibold">Suggested next step:</span> {feedback.improvement_path}
                             </p>
                           )}
                         </div>
                       </div>
                       <span className={`px-3 py-1 rounded-lg font-semibold flex-shrink-0 ml-4 ${getScoreColor(score)}`}>
-                        {score}
+                        {unassessed ? 'Not assessed' : score}
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">

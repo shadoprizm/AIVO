@@ -9,6 +9,7 @@ export interface FetchedResource {
   bytes: number;
   contentType: string;
   body: string;
+  truncated?: boolean;
 }
 
 export interface FailedResource {

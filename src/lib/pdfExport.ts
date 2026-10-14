@@ -584,6 +584,34 @@ export async function downloadScanReportPdf(ctx: ReportContext, filename: string
   pdf.save(filename);
 }
 
-export async function downloadPdfFromHtml(): Promise<void> {
-  throw new Error('downloadPdfFromHtml has been replaced — use downloadScanReportPdf for the scan PDF flow.');
+export async function downloadPdfFromHtml(html: string, filename: string): Promise<void> {
+  const { jsPDF } = await import('jspdf');
+  const pdf = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' });
+  const container = document.createElement('div');
+  container.style.position = 'fixed';
+  container.style.left = '-10000px';
+  container.style.top = '0';
+  container.style.width = '794px';
+  container.style.background = '#ffffff';
+  container.innerHTML = html;
+  document.body.appendChild(container);
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      pdf.html(container, {
+        autoPaging: 'text',
+        html2canvas: {
+          scale: 0.72,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+        },
+        callback: (doc) => {
+          doc.save(filename);
+          resolve();
+        },
+      }).catch(reject);
+    });
+  } finally {
+    container.remove();
+  }
 }
