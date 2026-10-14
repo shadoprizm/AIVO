@@ -19,6 +19,7 @@ interface ReportSite {
 
 interface PublicReportRow {
   id: string;
+  user_id: string | null;
   public_token: string;
   visibility: 'private' | 'unlisted' | 'public' | null;
   status: string;
@@ -72,7 +73,7 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, serviceRoleKey);
     const { data, error } = await supabase
       .from('scans')
-      .select('id, public_token, visibility, status, overall_score, v2_score, v2_evidence, analysis_json, created_at, completed_at, sites(id, name, url)')
+      .select('id, user_id, public_token, visibility, status, overall_score, v2_score, v2_evidence, analysis_json, created_at, completed_at, sites(id, name, url)')
       .eq('public_token', token)
       .maybeSingle();
 
@@ -81,8 +82,15 @@ Deno.serve(async (req: Request) => {
     }
 
     const scan = data as PublicReportRow | null;
-    if (!scan || scan.visibility === 'private') {
+    if (!scan) {
       return jsonResponse({ error: 'Report not found' }, 404);
+    }
+
+    if (scan.visibility === 'private') {
+      const bearer = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '').trim();
+      if (!bearer) return jsonResponse({ error: 'Report not found' }, 404);
+      const { data: { user }, error: authError } = await supabase.auth.getUser(bearer);
+      if (authError || !user || user.id !== scan.user_id) return jsonResponse({ error: 'Report not found' }, 404);
     }
 
     const evidence = scan.v2_evidence ?? {};

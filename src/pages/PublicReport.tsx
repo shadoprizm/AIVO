@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import MarketingLayout from '../components/layouts/MarketingLayout';
@@ -57,7 +57,7 @@ export default function PublicReport() {
   const [error, setError] = useState('');
   const [claiming, setClaiming] = useState(false);
   const [claimMessage, setClaimMessage] = useState('');
-  const [claimAttempted, setClaimAttempted] = useState(false);
+  const claimAttempted = useRef<string | null>(null);
   const { user, loading: authLoading } = useAuth();
   const siteUrl = SITE.url.replace(/\/$/, '');
 
@@ -138,17 +138,18 @@ export default function PublicReport() {
   const reportRedirectPath = token ? `/report/${token}` : '/dashboard';
 
   useEffect(() => {
-    if (authLoading || !user || !token || !report || claimAttempted || visibility === 'private') {
+    if (authLoading || !user || !token || !report || claimAttempted.current === token || visibility === 'private') {
       return;
     }
 
     let mounted = true;
-    setClaimAttempted(true);
+    claimAttempted.current = token;
     setClaiming(true);
     claimPublicScan(token)
       .then(() => {
         if (mounted) {
           setClaimMessage('Saved to your account.');
+          setClaiming(false);
           setReport((current) => current ? { ...current, visibility: 'private' } : current);
           trackEvent('report_claimed');
         }
@@ -156,6 +157,7 @@ export default function PublicReport() {
       .catch((claimError) => {
         if (mounted) {
           setClaimMessage(claimError instanceof Error ? claimError.message : 'Unable to save report.');
+          setClaiming(false);
         }
       })
       .finally(() => {
@@ -167,7 +169,7 @@ export default function PublicReport() {
     return () => {
       mounted = false;
     };
-  }, [authLoading, claimAttempted, report, token, user, visibility]);
+  }, [authLoading, report, token, user, visibility]);
 
   const rememberReportRedirect = () => {
     rememberPostAuthRedirect(reportRedirectPath);
@@ -273,6 +275,7 @@ export default function PublicReport() {
               </section>
 
               <p className="text-sm text-gray-700">Website readiness assessment. Actual AI mentions and citations were not tested. Performance, mobile usability and search indexing were not measured.</p>
+              {typeof evidence.summary === 'string' && <p className="text-gray-700">{evidence.summary}</p>}
               <ScoreSummary score={score} />
               {(strategicReadinessScore !== null || strategicReadinessSummary) && (
                 <section className="rounded-lg border border-blue-200 bg-blue-50 p-5">
@@ -294,12 +297,14 @@ export default function PublicReport() {
                   </div>
                 </section>
               )}
+              {evidence.analysis_version !== '3.0-readiness' && <>
               <GenerativeAudit audit={generativeAudit} battery={queryBattery} />
               <CompetitorTeardown competitors={competitorTeardown} />
               <EntityMap entityMap={entityMap} />
               <ContentGaps gaps={contentGaps} />
               <ContentBlueprint blueprint={contentBlueprint} />
-              <TechnicalFindings evidence={technicalEvidence} />
+              </>}
+              <TechnicalFindings evidence={technicalEvidence} findings={asArray<{ label: string; passed: boolean; evidence: string }>(technical.findings)} />
               <Recommendations recommendations={recommendations} />
               {token && <ReportFeedback publicToken={token} />}
 
