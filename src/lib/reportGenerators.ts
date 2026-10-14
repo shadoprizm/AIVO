@@ -10,12 +10,12 @@ export const categoryLabels: Record<keyof CategoryScores, string> = {
 };
 
 export const categoryDescriptions: Record<keyof CategoryScores, string> = {
-  content_clarity: 'Clear, factual writing with scannable structure',
-  semantic_structure: 'Proper HTML5 tags and heading hierarchy',
-  schema_metadata: 'Schema.org markup and meta tags',
-  qa_readiness: 'FAQ sections and Q&A formatting',
-  authority_trust: 'Credentials, citations, and expertise signals',
-  technical_accessibility: 'Fast loading and mobile-friendly',
+  content_clarity: 'Clear explanation of services, audience and next steps',
+  semantic_structure: 'Headings and document structure in captured HTML',
+  schema_metadata: 'Observed page metadata and valid structured data',
+  qa_readiness: 'Useful answers to customer questions',
+  authority_trust: 'Business details, relevant credentials and project evidence',
+  technical_accessibility: 'Public HTML availability and captured page content',
 };
 
 const severityRank: Record<string, number> = { high: 0, medium: 1, low: 2 };
