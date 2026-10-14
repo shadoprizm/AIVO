@@ -297,7 +297,7 @@ export default function PublicReport() {
                   </div>
                 </section>
               )}
-              {evidence.analysis_version !== '3.0-readiness' && <>
+              {!String(evidence.analysis_version ?? '').startsWith('3.') && <>
               <GenerativeAudit audit={generativeAudit} battery={queryBattery} />
               <CompetitorTeardown competitors={competitorTeardown} />
               <EntityMap entityMap={entityMap} />

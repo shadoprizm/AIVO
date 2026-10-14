@@ -36,12 +36,12 @@ Deno.test('Luna request uses bounded reasoning tokens and evidence validated sco
       assertEquals(request.reasoning_effort,'low');
       assertEquals(request.response_format.json_schema.strict,true);
       assert(!('temperature' in request)); assert(!('max_tokens' in request));
-      const data = { summary:'Clear architectural lighting services.', assessments:['content_clarity','qa_readiness','authority_trust'].map(category => ({ category,score:82,page_url:'https://example.com/',evidence_excerpt:'Our lighting designers create interior and exterior lighting plans',reason:'The service offering is visible.',fix:'Include project examples relevant to this service.' })), recommendations:[{category:'semantic_structure',severity:'medium',title:'Use one main heading',page_url:'https://example.com/',evidence_excerpt:'Our lighting designers create interior and exterior lighting plans',exact_fix:'Retain one H1 and change the duplicate to H2.'}] };
+      const data = { summary:'Clear architectural lighting services.', assessments:['content_clarity','qa_readiness','authority_trust'].map(category => ({ category,rating:'strong',page_url:'https://example.com/',evidence_excerpt:'Our lighting designers create interior and exterior lighting plans',reason:'The service offering is visible.',fix:'Include project examples relevant to this service.' })), recommendations:[{category:'semantic_structure',severity:'medium',title:'Use one main heading',page_url:'https://example.com/',evidence_excerpt:'Our lighting designers create interior and exterior lighting plans',exact_fix:'Retain one H1 and change the duplicate to H2.'}] };
       return Promise.resolve(Response.json({ model:'gpt-6-luna',choices:[{ finish_reason:'stop',message:{ content:JSON.stringify(data) } }],usage:{prompt_tokens:1000,completion_tokens:300} }));
     }) as typeof fetch;
     const result = await assessReadiness(site(html.replace('<h2>Services</h2>','<h1>Services</h1>')));
     assertEquals(result.v2_evidence.model,'gpt-6-luna');
-    assertEquals(result.analysis_json.category_scores.qa_readiness,82);
+    assertEquals(result.analysis_json.category_scores.qa_readiness,75);
     assertEquals(result.overall_score,Math.round(Object.values(result.analysis_json.category_scores).reduce((a,b)=>a+b,0)/6));
     assert(!result.analysis_json.recommendations.some(r=>r.id==='schema'));
     assertEquals(result.analysis_json.recommendations.filter(r=>/heading/i.test(r.title)).length,1);
