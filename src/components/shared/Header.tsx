@@ -33,7 +33,7 @@ export default function Header() {
                 <Link to="/login" className="text-gray-700 hover:text-gray-900 transition-colors">
                   Login
                 </Link>
-                <Link to="/signup">
+                <Link to="/signup" data-event="signup_click" data-location="header">
                   <Button size="sm">Sign Up</Button>
                 </Link>
               </>

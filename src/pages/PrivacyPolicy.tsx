@@ -18,7 +18,7 @@ export default function PrivacyPolicy() {
       />
       <div className="max-w-4xl mx-auto px-6 py-16">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">Privacy Policy</h1>
-        <p className="text-gray-600 mb-8">Last Updated: January 18, 2025</p>
+        <p className="text-gray-600 mb-8">Last Updated: November 4, 2026</p>
 
         <div className="prose prose-lg max-w-none space-y-8">
           <section>
@@ -66,6 +66,19 @@ export default function PrivacyPolicy() {
           </section>
 
           <section>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">Website analytics</h2>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              This website uses PostHog, a product analytics service, to understand how the site is used. It measures page views and clicks on the sign-up links and on the &quot;Run free AI visibility scan&quot; button.
+            </p>
+            <ul className="list-disc pl-6 text-gray-700 space-y-2">
+              <li>PostHog events are sent only from our public pages: the homepage, the free checker tools, sample audits, How It Works, FAQ, the blog, this privacy policy and the terms of service. They are not sent from the sign-in, sign-up, dashboard, site detail, admin or scan report pages.</li>
+              <li>PostHog is configured without automatic capture of page content, so the website address you type into a free checker is not part of these analytics events. That address is used to run your scan, as described under &quot;Website Data&quot; above.</li>
+              <li>Before an event is sent, page addresses keep only standard campaign tags (utm_ parameters) that are short plain labels; other query values and URL fragments are removed. The referring page address is sent with the same filtering.</li>
+              <li>Analytics data is processed in the US. IP addresses may be processed by PostHog.</li>
+            </ul>
+          </section>
+
+          <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">How We Use Your Information</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
               We use the collected information to:
@@ -88,6 +101,7 @@ export default function PrivacyPolicy() {
             </p>
             <ul className="list-disc pl-6 text-gray-700 space-y-2">
               <li><strong>Service Providers:</strong> We use Supabase for database hosting and authentication, OpenAI for scan analysis and DeepSeek for blog generation. These providers process data on our behalf under strict confidentiality agreements.</li>
+              <li><strong>Website Analytics:</strong> We use PostHog to measure page views and the clicks described under &quot;Website analytics&quot; above. Processing is subject to PostHog&apos;s privacy policy.</li>
               <li><strong>Legal Requirements:</strong> We may disclose information if required by law, court order, or governmental request.</li>
               <li><strong>Business Transfers:</strong> If we are involved in a merger, acquisition, or sale of assets, your information may be transferred as part of that transaction.</li>
             </ul>
@@ -101,6 +115,7 @@ export default function PrivacyPolicy() {
             <ul className="list-disc pl-6 text-gray-700 space-y-2">
               <li><strong>Supabase:</strong> Database hosting and authentication services</li>
               <li><strong>OpenAI GPT-6 Luna:</strong> Website analysis and recommendations; <strong>DeepSeek:</strong> Blog generation</li>
+              <li><strong>PostHog:</strong> Website analytics (page views and named clicks on our public pages), processed in the US</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mt-4">
               When you use our service, publicly accessible content from the websites you submit is sent to OpenAI for scan analysis. Blog generation uses DeepSeek. Each provider processes this data according to its applicable data usage policies.
@@ -141,7 +156,7 @@ export default function PrivacyPolicy() {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Cookies</h2>
             <p className="text-gray-700 leading-relaxed">
-              We use essential cookies for authentication and session management. These cookies are necessary for the service to function and cannot be disabled. We do not use advertising or tracking cookies.
+              We use essential cookies for authentication and session management. These cookies are necessary for the service to function and cannot be disabled. We do not use advertising cookies. Our website analytics is described under &quot;Website analytics&quot; above.
             </p>
           </section>
 

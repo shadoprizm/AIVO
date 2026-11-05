@@ -26,6 +26,7 @@ import {
 import SampleAudits from './pages/SampleAudits';
 import ProtectedRoute from './components/ProtectedRoute';
 import ScrollToTop from './components/ScrollToTop';
+import PostHogAnalytics from './components/PostHogAnalytics';
 import { trackPageView } from './lib/analytics';
 
 function AnalyticsRouteTracker() {
@@ -44,6 +45,7 @@ function App() {
       <Router>
         <ScrollToTop />
         <AnalyticsRouteTracker />
+        <PostHogAnalytics />
         <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/how-it-works" element={<HowItWorks />} />

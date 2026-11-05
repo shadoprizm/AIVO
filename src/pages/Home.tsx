@@ -492,7 +492,7 @@ export default function Home() {
               </p>
             </AnimatedSection>
             <AnimatedSection delay={0.2}>
-              <Link to="/signup">
+              <Link to="/signup" data-event="signup_click" data-location="home-cta">
                 <motion.div
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.98 }}

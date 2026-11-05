@@ -368,7 +368,7 @@ export default function HowItWorks() {
           <p className="text-xl mb-8 text-blue-100">
             Get your comprehensive AIVO Score and start optimizing your content for AI discoverability today.
           </p>
-          <Link to="/signup">
+          <Link to="/signup" data-event="signup_click" data-location="how-it-works">
             <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100">
               Analyze Your Website Now
             </Button>
