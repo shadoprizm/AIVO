@@ -58,7 +58,7 @@ export default function PublicScanForm() {
             className="w-full h-14 pl-12 pr-4 rounded-lg border border-white/20 bg-white text-slate-950 placeholder:text-slate-500 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-100"
           />
         </div>
-        <Button type="submit" size="lg" disabled={loading} className="h-14 whitespace-nowrap">
+        <Button type="submit" size="lg" disabled={loading} className="h-14 whitespace-nowrap" data-event="free_scan_click" data-location="scan-form">
           {loading ? 'Scanning...' : 'Run free AI visibility scan'}
         </Button>
       </div>
